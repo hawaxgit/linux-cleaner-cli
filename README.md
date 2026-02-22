@@ -1,56 +1,82 @@
-# linux-cleaner-cli
-Linux Cleaner is a cross-distro CLI tool for safely reclaiming disk space on Linux systems by cleaning package caches, system logs, temporary files, and optional container/package manager leftovers.
-
 # Linux Cleaner
 
-A cross-distro Linux cleanup script for freeing disk space safely.
-
-It supports:
-
-- Ubuntu / Debian (APT)
-- Arch Linux (pacman)
-- Fedora / RHEL (dnf / yum)
-- openSUSE (zypper)
-- Alpine (apk)
+A cross-distro Linux cleanup script that safely frees disk space by cleaning package caches, logs, temp files, and optional Docker/Flatpak/Snap data.
 
 ## Features
 
-- Auto-detects distro and package manager
-- Safe temp cleanup (`systemd-tmpfiles` if available)
-- Journal cleanup (`journalctl --vacuum-time=...`)
-- Large log truncation in `/var/log`
-- Optional user cache cleanup (`~/.cache`)
-- Optional Flatpak cleanup
-- Optional Snap cleanup (disabled revisions)
-- Optional Docker cleanup
-- Profiles: `safe`, `normal`, `aggressive`
-- `--dry-run` mode (preview commands without running)
-- `--install` to install into `/usr/local/bin`
+- ✅ Cross-distro support (auto-detects package manager)
+- ✅ Safe cleanup (no risky automatic kernel removal)
+- ✅ Package cache cleanup
+- ✅ System journal cleanup (`journalctl`)
+- ✅ Temporary file cleanup (`/tmp`, `/var/tmp`)
+- ✅ Large log truncation in `/var/log`
+- ✅ Optional user cache cleanup (`~/.cache`)
+- ✅ Optional Flatpak cleanup
+- ✅ Optional Snap cleanup (disabled revisions)
+- ✅ Optional Docker cleanup
+- ✅ `--dry-run` mode (preview commands before execution)
+- ✅ `--install` mode (install to `/usr/local/bin`)
+- ✅ Cleanup profiles: `safe`, `normal`, `aggressive`
+
+---
+
+## Supported Distributions
+
+The script is designed to work on:
+
+- **Ubuntu / Debian** (`apt`)
+- **Arch Linux** (`pacman`)
+- **Fedora / RHEL** (`dnf` / `yum`)
+- **openSUSE** (`zypper`)
+- **Alpine Linux** (`apk`)
+
+---
 
 ## Why this script?
 
-This script is made as a **safe baseline cleaner**.  
-It avoids risky actions like automatic kernel removal and does not blindly wipe critical directories.
+This project is built as a **safe baseline Linux cleaner**.
+
+It avoids dangerous actions like:
+- automatic kernel removal
+- blindly deleting critical directories
+- distro-specific destructive commands without checks
+
+It is meant to be a practical CLI tool you can run on personal systems, workstations, and servers.
+
+---
 
 ## Installation
 
 ### Option 1: Run directly
+
 ```bash
 chmod +x linux-cleaner.sh
-
 ./linux-cleaner.sh --dry-run
 ```
-## Then run it from anywhere:
+
+### Option 2: Install globally
+
+```bash
+chmod +x linux-cleaner.sh
+./linux-cleaner.sh --install
+```
+
+Then run it from anywhere:
+
 ```bash
 linux-cleaner.sh --yes
 ```
 
-## Usage
-````bash
-./linux-cleaner.sh [OPTIONS]
-````
+---
 
-## Available Options
+## Usage
+
+```bash
+./linux-cleaner.sh [OPTIONS]
+```
+
+### Available Options
+
 - `--install` → Install script to `/usr/local/bin`
 - `--dry-run` → Show commands only (do not execute)
 - `--yes` → Non-interactive mode (auto-confirm prompts)
@@ -60,23 +86,36 @@ linux-cleaner.sh --yes
 - `--version` → Show script version
 - `-h, --help` → Show help
 
+---
+
 ## Examples
-# Preview cleanup without making changes
-````bash
+
+### Preview cleanup without making changes
+
+```bash
 ./linux-cleaner.sh --dry-run --profile safe
-````
-# Run normal cleanup (non-interactive)
-````bash
+```
+
+### Run normal cleanup (non-interactive)
+
+```bash
 ./linux-cleaner.sh --yes
-````
-## Run aggressive cleanup with Docker cleanup enabled
-````bash
+```
+
+### Run aggressive cleanup with Docker cleanup enabled
+
+```bash
 ./linux-cleaner.sh --yes --profile aggressive --docker
-````
-## Skip user cache cleanup
-````bash
+```
+
+### Skip user cache cleanup
+
+```bash
 ./linux-cleaner.sh --yes --no-user-cache
-````
+```
+
+---
+
 ## Profiles
 
 ### `safe`
@@ -120,6 +159,49 @@ Depending on your distro and enabled options, the script may clean:
 - On Arch Linux, `paccache` is provided by `pacman-contrib`
 - Docker cleanup can remove unused images, containers, and volumes (depending on mode)
 
+---
+
+## Logs
+
+The script writes a runtime log file to:
+
+```bash
+/tmp/linux-cleaner_YYYYMMDD_HHMMSS.log
+```
+
+This helps with troubleshooting and reviewing what was cleaned.
+
+---
+
+## Roadmap
+
+- [ ] `--report` (Markdown / HTML summary output)
+- [ ] `--exclude` option (skip selected cache paths)
+- [ ] App cache cleanup (`npm`, `pip`, `cargo`, etc.)
+- [ ] systemd timer installer (scheduled cleanup)
+- [ ] Colored output / improved CLI UI
+- [ ] GitHub Actions with `shellcheck`
+
+---
+
+## License
+
+MIT
+
+---
+
+## Contributing
+
+Pull requests, ideas, and improvements are welcome.
+
+If you find a distro-specific issue, please open an issue with:
+
+- distro name and version
+- command output / error message
+- the exact command you ran (`--dry-run` output is very helpful)
+
+---
+
 ## Author
 
-Soroush @ hawaxgit
+Soroush @ Hawax
