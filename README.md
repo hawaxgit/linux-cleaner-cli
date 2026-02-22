@@ -50,21 +50,23 @@ It is meant to be a practical CLI tool you can run on personal systems, workstat
 ### Option 1: Run directly
 
 ```bash
-chmod +x linux-cleaner.sh
-./linux-cleaner.sh --dry-run
+
+sudo git clone https://github.com/hawaxgit/linux-cleaner-cli.git
+sudo chmod +x linux-cleaner.sh
+sudo ./linux-cleaner.sh --dry-run
 ```
 
 ### Option 2: Install globally
 
 ```bash
-chmod +x linux-cleaner.sh
-./linux-cleaner.sh --install
+sudo chmod +x linux-cleaner.sh
+sudo ./linux-cleaner.sh --install
 ```
 
 Then run it from anywhere:
 
 ```bash
-linux-cleaner.sh --yes
+sudo linux-cleaner.sh --yes
 ```
 
 ---
@@ -72,7 +74,7 @@ linux-cleaner.sh --yes
 ## Usage
 
 ```bash
-./linux-cleaner.sh [OPTIONS]
+sudo ./linux-cleaner.sh [OPTIONS]
 ```
 
 ### Available Options
@@ -93,25 +95,25 @@ linux-cleaner.sh --yes
 ### Preview cleanup without making changes
 
 ```bash
-./linux-cleaner.sh --dry-run --profile safe
+sudo ./linux-cleaner.sh --dry-run --profile safe
 ```
 
 ### Run normal cleanup (non-interactive)
 
 ```bash
-./linux-cleaner.sh --yes
+sudo ./linux-cleaner.sh --yes
 ```
 
 ### Run aggressive cleanup with Docker cleanup enabled
 
 ```bash
-./linux-cleaner.sh --yes --profile aggressive --docker
+sudo ./linux-cleaner.sh --yes --profile aggressive --docker
 ```
 
 ### Skip user cache cleanup
 
 ```bash
-./linux-cleaner.sh --yes --no-user-cache
+sudo ./linux-cleaner.sh --yes --no-user-cache
 ```
 
 ---
