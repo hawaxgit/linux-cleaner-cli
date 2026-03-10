@@ -165,7 +165,8 @@ EOF
 }
 
 # ==========================================================
-# TUI MENU SYSTEM (pure Bash — no dialog/whiptail required)
+# TUI MENU SYSTEM  ·  Cyberpunk / Hacker Style
+# Pure Bash — no dialog/whiptail required
 # ==========================================================
 
 MENU_ITEMS_LABEL=()
@@ -179,95 +180,156 @@ tui_hide_cursor()  { printf '\033[?25l'; }
 tui_show_cursor()  { printf '\033[?25h'; }
 trap 'tui_show_cursor; tput rmcup 2>/dev/null || true' EXIT INT TERM
 
+# ── Cyberpunk palette ──────────────────────────────────────
+CY_BORDER="\e[38;5;22m"          # dark green border
+CY_BORDER2="\e[38;5;28m"         # medium green accent
+CY_TITLE="\e[1;38;5;46m"         # bright lime green title
+CY_LOGO="\e[1;38;5;34m"          # matrix green logo
+CY_SECTION="\e[38;5;40m"         # section header green
+CY_LABEL="\e[38;5;254m"          # near-white label
+CY_LABEL_HL="\e[1;38;5;46m"      # highlighted label (bright green)
+CY_DESC="\e[38;5;241m"           # dark gray description
+CY_DESC_HL="\e[38;5;245m"        # highlighted description
+CY_ON="\e[1;38;5;46m"            # ON state  — bright green
+CY_OFF="\e[38;5;238m"            # OFF state — dark gray
+CY_SELECT="\e[1;38;5;82m"        # select value
+CY_CURSOR="\e[1;38;5;46m"        # cursor arrow
+CY_ACTION_RUN="\e[1;38;5;46m"    # run button
+CY_ACTION_QUIT="\e[38;5;196m"    # quit button
+CY_LEGEND_KEY="\e[1;38;5;226m"   # legend keys
+CY_LEGEND_TXT="\e[38;5;245m"     # legend text
+CY_DIM="\e[38;5;235m"            # very dim
+
 tui_draw_menu() {
   local cursor="$1"
-  local title="$2"
-  local width=64
+  local W=72    # total box width (including border chars)
+  local IW=$(( W - 4 ))   # inner width
 
   tui_clear_screen
   tui_hide_cursor
 
-  echo -e "${C_BOLD}${C_BLUE}  ╔$(printf '═%.0s' $(seq 1 $((width-2))))╗${C_RESET}"
-  local pad=$(( (width - 2 - ${#title}) / 2 ))
-  local rpad=$(( width - 2 - pad - ${#title} ))
-  printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_BOLD}${C_CYAN}%*s%s%*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" "$pad" "" "$title" "$rpad" ""
-  local sub=" Linux Admin & Cleaner v${VERSION} "
-  local spad=$(( (width - 2 - ${#sub}) / 2 ))
-  local srpad=$(( width - 2 - spad - ${#sub} ))
-  printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_GRAY}%*s%s%*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" "$spad" "" "$sub" "$srpad" ""
-  echo -e "${C_BOLD}${C_BLUE}  ╠$(printf '═%.0s' $(seq 1 $((width-2))))╣${C_RESET}"
+  # ── ASCII-Art Logo ────────────────────────────────────────
+  echo -e "${CY_LOGO}"
+  echo '       ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗'
+  echo '       ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝'
+  echo '       ██║     ██║██╔██╗ ██║██║   ██║ ╚███╔╝ '
+  echo '       ██║     ██║██║╚██╗██║██║   ██║ ██╔██╗ '
+  echo '       ███████╗██║██║ ╚████║╚██████╔╝██╔╝ ██╗'
+  echo '       ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝'
+  echo -e "${CY_DIM}       ·· ADMIN & CLEANER  //  v${VERSION}  //  by Hawax ··${C_RESET}"
+  echo ""
 
+  # ── Top border ───────────────────────────────────────────
+  printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+
+  # ── Items ─────────────────────────────────────────────────
   local i
   for (( i=0; i<${#MENU_ITEMS_LABEL[@]}; i++ )); do
     local type="${MENU_ITEMS_TYPE[$i]}"
     local label="${MENU_ITEMS_LABEL[$i]}"
     local desc="${MENU_ITEMS_DESC[$i]}"
     local state="${MENU_ITEMS_STATE[$i]}"
+    local is_cursor=0
+    [[ "$i" == "$cursor" ]] && is_cursor=1
 
+    # ── Separator / section header ─────────────────────────
     if [[ "$type" == "separator" ]]; then
-      echo -e "${C_BOLD}${C_BLUE}  ╠$(printf '─%.0s' $(seq 1 $((width-2))))╣${C_RESET}"
-      local slen=${#label}
-      local sp=$(( (width - 2 - slen) / 2 ))
-      local rp=$(( width - 2 - sp - slen ))
-      printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_BOLD}${C_YELLOW}%*s%s%*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" "$sp" "" "$label" "$rp" ""
+      printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+      # Section label left-aligned with padding
+      printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION}%-${IW}s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
+        " ▸ ${label}"
+      printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
       continue
     fi
 
-    local indicator="   "
+    # ── Toggle indicator ───────────────────────────────────
+    local badge=""
     if [[ "$type" == "toggle" ]]; then
-      [[ "$state" == "1" ]] && indicator="${C_GREEN}[✔]${C_RESET}" || indicator="${C_GRAY}[ ]${C_RESET}"
+      if [[ "$state" == "1" ]]; then
+        badge="${CY_ON}◼ ON ${C_RESET}"
+      else
+        badge="${CY_OFF}◻ -- ${C_RESET}"
+      fi
     elif [[ "$type" == "select" ]]; then
-      indicator="${C_CYAN}[${state}]${C_RESET}"
+      badge="${CY_SELECT}⟨ ${state} ⟩${C_RESET}"
     elif [[ "$type" == "action" ]]; then
-      indicator="${C_MAGENTA}[→]${C_RESET}"
+      local ikey="${MENU_ITEMS_KEY[$i]}"
+      if [[ "$ikey" == "RUN" ]]; then
+        badge="${CY_ACTION_RUN}[ EXECUTE ]${C_RESET}"
+      else
+        badge="${CY_ACTION_QUIT}[ EXIT ]${C_RESET}"
+      fi
     fi
 
-    if [[ "$i" == "$cursor" ]]; then
-      printf "${C_BOLD}${C_BLUE}  ║${C_RESET} ${C_BOLD}${C_CYAN}▶ %b %-22s${C_RESET}" "$indicator" "$label"
-      printf "${C_GRAY}%-$((width-32))s${C_RESET}" "$desc"
-      echo -e "${C_BOLD}${C_BLUE}║${C_RESET}"
+    # ── Row rendering ──────────────────────────────────────
+    if [[ "$is_cursor" -eq 1 ]]; then
+      # Highlighted row: green background tint via bold + color
+      local arrow="${CY_CURSOR}❯${C_RESET}"
+      printf "${CY_BORDER}  │${C_RESET} %s ${CY_LABEL_HL}%-23s${C_RESET}%s  ${CY_DESC_HL}%-$((IW-36))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
+        "$arrow" "$label" "$badge" "$desc"
     else
-      printf "${C_BOLD}${C_BLUE}  ║${C_RESET}   %b %-22s" "$indicator" "$label"
-      printf "${C_GRAY}%-$((width-32))s${C_RESET}" "$desc"
-      echo -e "${C_BOLD}${C_BLUE}║${C_RESET}"
+      printf "${CY_BORDER}  │${C_RESET}   ${CY_LABEL}%-23s${C_RESET}%s  ${CY_DESC}%-$((IW-36))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
+        "$label" "$badge" "$desc"
     fi
   done
 
-  echo -e "${C_BOLD}${C_BLUE}  ╠$(printf '═%.0s' $(seq 1 $((width-2))))╣${C_RESET}"
-  local legend=" ↑↓ Navigate   SPACE/ENTER Toggle   A=All  N=None   Q Quit "
-  local lpad=$(( (width - 2 - ${#legend}) / 2 ))
-  local lrpad=$(( width - 2 - lpad - ${#legend} ))
-  printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_BOLD}${C_YELLOW}%*s%s%*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" "$lpad" "" "$legend" "$lrpad" ""
-  echo -e "${C_BOLD}${C_BLUE}  ╚$(printf '═%.0s' $(seq 1 $((width-2))))╝${C_RESET}"
+  # ── Bottom border ─────────────────────────────────────────
+  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+
+  # ── Legend bar ────────────────────────────────────────────
+  printf "${CY_BORDER}  │${C_RESET}  "
+  printf "${CY_LEGEND_KEY}↑↓${C_RESET}${CY_LEGEND_TXT} move  "
+  printf "${CY_LEGEND_KEY}SPC/ENT${C_RESET}${CY_LEGEND_TXT} toggle  "
+  printf "${CY_LEGEND_KEY}A${C_RESET}${CY_LEGEND_TXT} all  "
+  printf "${CY_LEGEND_KEY}N${C_RESET}${CY_LEGEND_TXT} none  "
+  printf "${CY_LEGEND_KEY}Q${C_RESET}${CY_LEGEND_TXT} quit"
+  printf "%*s${CY_BORDER}│${C_RESET}\n" $(( W - 52 )) ""
+
+  printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+  echo ""
 }
 
 tui_profile_menu() {
   local profiles=("safe" "normal" "aggressive")
-  local descriptions=(
-    "Conservative: keeps more logs, minimal risk    "
-    "Balanced:     recommended for most systems     "
-    "Deep clean:   shorter retention, more freed    "
+  local descs=(
+    "Keeps more logs · minimal risk · conservative"
+    "Balanced · recommended default for most users"
+    "Short retention · deep clean · more freed GB "
   )
+  local icons=("  🛡  " "  ⚖  " "  🔥 ")
   local cur=1
   local p
   for p in 0 1 2; do [[ "${profiles[$p]}" == "$PROFILE" ]] && cur=$p; done
-  local width=64
+  local W=72
+
   while true; do
     tui_clear_screen
     tui_hide_cursor
-    echo -e "${C_BOLD}${C_BLUE}  ╔$(printf '═%.0s' $(seq 1 $((width-2))))╗${C_RESET}"
-    printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_BOLD}${C_CYAN}%*s%-*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" 18 "" 44 "  Select Cleanup Profile"
-    echo -e "${C_BOLD}${C_BLUE}  ╠$(printf '─%.0s' $(seq 1 $((width-2))))╣${C_RESET}"
+
+    echo -e "${CY_LOGO}"
+    echo '       ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗'
+    echo '       ╚════╝  ╚═╝╚═╝   ╚══╝╚═════╝  PROFILE SELECT'
+    echo -e "${C_RESET}"
+
+    printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+    printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION} ▸ SELECT CLEANUP PROFILE%-$((W-29))s${CY_BORDER}│${C_RESET}\n" ""
+    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+
     local i
     for (( i=0; i<3; i++ )); do
-      local mark="   "
-      [[ "$i" == "$cur" ]] && mark="${C_BOLD}${C_CYAN}▶  ${C_RESET}"
-      printf "${C_BOLD}${C_BLUE}  ║${C_RESET} %b${C_BOLD}%-12s${C_RESET}  ${C_GRAY}%-43s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" \
-        "$mark" "${profiles[$i]}" "${descriptions[$i]}"
+      if [[ "$i" == "$cur" ]]; then
+        printf "${CY_BORDER}  │${C_RESET} ${CY_CURSOR}❯${C_RESET} ${CY_ON}%-12s${C_RESET}  ${CY_DESC_HL}%-$((W-22))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
+          "${profiles[$i]}" "${descs[$i]}"
+      else
+        printf "${CY_BORDER}  │${C_RESET}   ${CY_LABEL}%-12s${C_RESET}  ${CY_DESC}%-$((W-22))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
+          "${profiles[$i]}" "${descs[$i]}"
+      fi
     done
-    echo -e "${C_BOLD}${C_BLUE}  ╠$(printf '─%.0s' $(seq 1 $((width-2))))╣${C_RESET}"
-    printf "${C_BOLD}${C_BLUE}  ║${C_RESET}${C_YELLOW}%*s%-*s${C_RESET}${C_BOLD}${C_BLUE}║${C_RESET}\n" 10 "" 52 "  ↑↓ Navigate   ENTER Select   ESC/Q Cancel"
-    echo -e "${C_BOLD}${C_BLUE}  ╚$(printf '═%.0s' $(seq 1 $((width-2))))╝${C_RESET}"
+
+    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+    printf "${CY_BORDER}  │${C_RESET}  ${CY_LEGEND_KEY}↑↓${C_RESET}${CY_LEGEND_TXT} navigate  ${CY_LEGEND_KEY}ENTER${C_RESET}${CY_LEGEND_TXT} select  ${CY_LEGEND_KEY}Q${C_RESET}${CY_LEGEND_TXT} cancel%-$((W-50))s${CY_BORDER}│${C_RESET}\n" ""
+    printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
 
     local key=""
     IFS= read -rsn1 key
@@ -362,24 +424,32 @@ tui_main_menu() {
 
   if [[ "$MOD_CLEAN" == "0" && "$MOD_NETWORK" == "0" && \
         "$MOD_SECURITY" == "0" && "$MOD_HEALTH" == "0" && "$MOD_APPCACHE" == "0" ]]; then
-    echo -e "\n${C_YELLOW}  ⚠  No modules selected. Please run again and select at least one.${C_RESET}\n"
+    echo -e "\n${CY_ACTION_QUIT}  ⚠  No modules selected. Run again and select at least one.${C_RESET}\n"
     exit 1
   fi
 
-  echo -e "\n${C_BOLD}${C_CYAN}  ┌─ Selected Configuration ────────────────────────────────┐${C_RESET}"
+  # ── Launch summary ─────────────────────────────────────
+  local W=72
   local mod_list=""
-  [[ "$MOD_CLEAN"    == "1" ]] && mod_list+=" Cleanup"
-  [[ "$MOD_NETWORK"  == "1" ]] && mod_list+=" Network"
-  [[ "$MOD_SECURITY" == "1" ]] && mod_list+=" Security"
-  [[ "$MOD_HEALTH"   == "1" ]] && mod_list+=" Health"
-  [[ "$MOD_APPCACHE" == "1" ]] && mod_list+=" AppCache"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "Modules:" "$mod_list"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "Profile:" "$PROFILE"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "Docker cleanup:" "$([[ "$ENABLE_DOCKER" == "1" ]] && echo Yes || echo No)"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "User cache:" "$([[ "$CLEAN_USER_CACHE" == "1" ]] && echo Clean || echo Skip)"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "Dry run:" "$([[ "$DRY_RUN" == "1" ]] && echo YES || echo No)"
-  printf "  ${C_BOLD}${C_CYAN}│${C_RESET}  %-20s ${C_GREEN}%s${C_RESET}\n" "Report:" "$([[ "$REPORT_MODE" == "1" ]] && echo "$REPORT_FILE" || echo No)"
-  echo -e "  ${C_BOLD}${C_CYAN}└──────────────────────────────────────────────────────────┘${C_RESET}\n"
+  [[ "$MOD_CLEAN"    == "1" ]] && mod_list+="${CY_ON}Cleanup${C_RESET} "
+  [[ "$MOD_NETWORK"  == "1" ]] && mod_list+="${CY_ON}Network${C_RESET} "
+  [[ "$MOD_SECURITY" == "1" ]] && mod_list+="${CY_ON}Security${C_RESET} "
+  [[ "$MOD_HEALTH"   == "1" ]] && mod_list+="${CY_ON}Health${C_RESET} "
+  [[ "$MOD_APPCACHE" == "1" ]] && mod_list+="${CY_ON}AppCache${C_RESET} "
+
+  echo ""
+  printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+  printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION} ▸ LAUNCHING WITH CONFIGURATION%-$((W-36))s${CY_BORDER}│${C_RESET}\n" ""
+  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %b\n" "Modules"    "$mod_list"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} ${CY_SELECT}%s${C_RESET}\n" "Profile"      "$PROFILE"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Docker"     "$([[ "$ENABLE_DOCKER" == "1" ]] && echo -e "${CY_ON}enabled${C_RESET}" || echo -e "${CY_OFF}disabled${C_RESET}")"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "User cache"  "$([[ "$CLEAN_USER_CACHE" == "1" ]] && echo -e "${CY_ON}will clean${C_RESET}" || echo -e "${CY_OFF}skipped${C_RESET}")"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Dry run"    "$([[ "$DRY_RUN" == "1" ]] && echo -e "${CY_ACTION_QUIT}YES — no changes${C_RESET}" || echo -e "${CY_OFF}off${C_RESET}")"
+  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Report"     "$([[ "$REPORT_MODE" == "1" ]] && echo -e "${CY_ON}$REPORT_FILE${C_RESET}" || echo -e "${CY_OFF}off${C_RESET}")"
+  printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+  echo ""
 }
 
 # ---------- Parse args ----------
@@ -494,7 +564,7 @@ if [[ "$REPORT_MODE" -eq 1 ]]; then
 fi
 
 # ---------- Banner ----------
-echo -e "${C_BOLD}${C_CYAN}"
+echo -e "${CY_LOGO}"
 cat <<'BANNER'
   ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗
   ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝
