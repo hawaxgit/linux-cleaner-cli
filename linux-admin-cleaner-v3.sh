@@ -165,292 +165,259 @@ EOF
 }
 
 # ==========================================================
-# TUI MENU SYSTEM  ·  Cyberpunk / Hacker Style
-# Pure Bash — no dialog/whiptail required
+# INTERACTIVE MENU SYSTEM
+# Number-based selection, live output per step, summary + loop
 # ==========================================================
 
-MENU_ITEMS_LABEL=()
-MENU_ITEMS_DESC=()
-MENU_ITEMS_STATE=()
-MENU_ITEMS_TYPE=()
-MENU_ITEMS_KEY=()
-
 tui_clear_screen() { printf '\033[2J\033[H'; }
-tui_hide_cursor()  { printf '\033[?25l'; }
-tui_show_cursor()  { printf '\033[?25h'; }
-trap 'tui_show_cursor; tput rmcup 2>/dev/null || true' EXIT INT TERM
+trap 'tput rmcup 2>/dev/null || true' EXIT INT TERM
 
-# ── Cyberpunk palette ──────────────────────────────────────
-CY_BORDER="\e[38;5;22m"          # dark green border
-CY_BORDER2="\e[38;5;28m"         # medium green accent
-CY_TITLE="\e[1;38;5;46m"         # bright lime green title
-CY_LOGO="\e[1;38;5;34m"          # matrix green logo
-CY_SECTION="\e[38;5;40m"         # section header green
-CY_LABEL="\e[38;5;254m"          # near-white label
-CY_LABEL_HL="\e[1;38;5;46m"      # highlighted label (bright green)
-CY_DESC="\e[38;5;241m"           # dark gray description
-CY_DESC_HL="\e[38;5;245m"        # highlighted description
-CY_ON="\e[1;38;5;46m"            # ON state  — bright green
-CY_OFF="\e[38;5;238m"            # OFF state — dark gray
-CY_SELECT="\e[1;38;5;82m"        # select value
-CY_CURSOR="\e[1;38;5;46m"        # cursor arrow
-CY_ACTION_RUN="\e[1;38;5;46m"    # run button
-CY_ACTION_QUIT="\e[38;5;196m"    # quit button
-CY_LEGEND_KEY="\e[1;38;5;226m"   # legend keys
-CY_LEGEND_TXT="\e[38;5;245m"     # legend text
-CY_DIM="\e[38;5;235m"            # very dim
+# ── Menu color palette ────────────────────────────────────
+M_NUM="\e[1;38;5;220m"     # number — yellow
+M_LABEL="\e[1;38;5;255m"   # label  — white
+M_DESC="\e[38;5;244m"       # desc   — gray
+M_SEP="\e[38;5;240m"        # separator line
+M_RUN="\e[1;38;5;46m"       # run/ok — green
+M_WARN="\e[1;38;5;196m"     # warning/quit — red
+M_DIM="\e[38;5;235m"        # dim
+M_STEP="\e[1;38;5;39m"      # step header — blue
+M_OK="\e[1;38;5;46m"        # ok result
+M_ERR="\e[1;38;5;196m"      # error result
+M_INFO="\e[38;5;250m"       # info text
 
-tui_draw_menu() {
-  local cursor="$1"
-  local W=72    # total box width (including border chars)
-  local IW=$(( W - 4 ))   # inner width
-
-  tui_clear_screen
-  tui_hide_cursor
-
-  # ── ASCII-Art Logo ────────────────────────────────────────
-  echo -e "${CY_LOGO}"
-  echo '       ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗'
-  echo '       ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝'
-  echo '       ██║     ██║██╔██╗ ██║██║   ██║ ╚███╔╝ '
-  echo '       ██║     ██║██║╚██╗██║██║   ██║ ██╔██╗ '
-  echo '       ███████╗██║██║ ╚████║╚██████╔╝██╔╝ ██╗'
-  echo '       ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝'
-  echo -e "${CY_DIM}       ·· ADMIN & CLEANER  //  v${VERSION}  //  by Hawax ··${C_RESET}"
-  echo ""
-
-  # ── Top border ───────────────────────────────────────────
-  printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-
-  # ── Items ─────────────────────────────────────────────────
-  local i
-  for (( i=0; i<${#MENU_ITEMS_LABEL[@]}; i++ )); do
-    local type="${MENU_ITEMS_TYPE[$i]}"
-    local label="${MENU_ITEMS_LABEL[$i]}"
-    local desc="${MENU_ITEMS_DESC[$i]}"
-    local state="${MENU_ITEMS_STATE[$i]}"
-    local is_cursor=0
-    [[ "$i" == "$cursor" ]] && is_cursor=1
-
-    # ── Separator / section header ─────────────────────────
-    if [[ "$type" == "separator" ]]; then
-      printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-      # Section label left-aligned with padding
-      printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION}%-${IW}s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
-        " ▸ ${label}"
-      printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-      continue
-    fi
-
-    # ── Toggle indicator ───────────────────────────────────
-    local badge=""
-    if [[ "$type" == "toggle" ]]; then
-      if [[ "$state" == "1" ]]; then
-        badge="${CY_ON}◼ ON ${C_RESET}"
-      else
-        badge="${CY_OFF}◻ -- ${C_RESET}"
-      fi
-    elif [[ "$type" == "select" ]]; then
-      badge="${CY_SELECT}⟨ ${state} ⟩${C_RESET}"
-    elif [[ "$type" == "action" ]]; then
-      local ikey="${MENU_ITEMS_KEY[$i]}"
-      if [[ "$ikey" == "RUN" ]]; then
-        badge="${CY_ACTION_RUN}[ EXECUTE ]${C_RESET}"
-      else
-        badge="${CY_ACTION_QUIT}[ EXIT ]${C_RESET}"
-      fi
-    fi
-
-    # ── Row rendering ──────────────────────────────────────
-    if [[ "$is_cursor" -eq 1 ]]; then
-      # Highlighted row: green background tint via bold + color
-      local arrow="${CY_CURSOR}❯${C_RESET}"
-      printf "${CY_BORDER}  │${C_RESET} %s ${CY_LABEL_HL}%-23s${C_RESET}%s  ${CY_DESC_HL}%-$((IW-36))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
-        "$arrow" "$label" "$badge" "$desc"
-    else
-      printf "${CY_BORDER}  │${C_RESET}   ${CY_LABEL}%-23s${C_RESET}%s  ${CY_DESC}%-$((IW-36))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
-        "$label" "$badge" "$desc"
-    fi
-  done
-
-  # ── Bottom border ─────────────────────────────────────────
-  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-
-  # ── Legend bar ────────────────────────────────────────────
-  printf "${CY_BORDER}  │${C_RESET}  "
-  printf "${CY_LEGEND_KEY}↑↓${C_RESET}${CY_LEGEND_TXT} move  "
-  printf "${CY_LEGEND_KEY}SPC/ENT${C_RESET}${CY_LEGEND_TXT} toggle  "
-  printf "${CY_LEGEND_KEY}A${C_RESET}${CY_LEGEND_TXT} all  "
-  printf "${CY_LEGEND_KEY}N${C_RESET}${CY_LEGEND_TXT} none  "
-  printf "${CY_LEGEND_KEY}Q${C_RESET}${CY_LEGEND_TXT} quit"
-  printf "%*s${CY_BORDER}│${C_RESET}\n" $(( W - 52 )) ""
-
-  printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+menu_logo() {
+  echo -e "\e[1;38;5;34m"
+  echo '    ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗'
+  echo '    ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝'
+  echo '    ██║     ██║██╔██╗ ██║██║   ██║ ╚███╔╝ '
+  echo '    ██║     ██║██║╚██╗██║██║   ██║ ██╔██╗ '
+  echo '    ███████╗██║██║ ╚████║╚██████╔╝██╔╝ ██╗'
+  echo '    ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝'
+  echo -e "${M_DIM}    ── Linux Admin & Cleaner  v${VERSION}  ·  by Hawax ──${C_RESET}"
   echo ""
 }
 
-tui_profile_menu() {
-  local profiles=("safe" "normal" "aggressive")
-  local descs=(
-    "Keeps more logs · minimal risk · conservative"
-    "Balanced · recommended default for most users"
-    "Short retention · deep clean · more freed GB "
-  )
-  local icons=("  🛡  " "  ⚖  " "  🔥 ")
-  local cur=1
-  local p
-  for p in 0 1 2; do [[ "${profiles[$p]}" == "$PROFILE" ]] && cur=$p; done
-  local W=72
+menu_line() { echo -e "${M_SEP}    $(printf '─%.0s' $(seq 1 55))${C_RESET}"; }
 
-  while true; do
-    tui_clear_screen
-    tui_hide_cursor
+menu_show() {
+  tui_clear_screen
+  menu_logo
+  echo -e "${M_LABEL}    WHAT DO YOU WANT TO DO?${C_RESET}"
+  echo -e "${M_DESC}    Enter numbers separated by spaces  (e.g.  1 3 4  or  * r)${C_RESET}"
+  echo ""
+  menu_line
+  echo ""
+  printf "  ${M_NUM}  1  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Disk Cleanup"   "Package cache · journal · temp · logs · snap · flatpak"
+  printf "  ${M_NUM}  2  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Network Audit"  "Open ports · firewall · sensitive services · connections"
+  printf "  ${M_NUM}  3  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Security Audit" "SUID · SSH config · sudo entries · password check"
+  printf "  ${M_NUM}  4  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Health Check"   "CPU · RAM · disk usage · failed services · OOM kills"
+  printf "  ${M_NUM}  5  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "App Cache"      "npm · pip · cargo · Go · Maven · Gradle"
+  echo ""
+  menu_line
+  echo ""
+  echo -e "${M_DESC}    Options — add to your selection:${C_RESET}"
+  echo ""
+  printf "  ${M_NUM}  d  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Docker cleanup"  "Include Docker images / volumes / containers"
+  printf "  ${M_NUM}  r  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Generate Report" "Save Markdown report to /tmp/report-DATE.md"
+  printf "  ${M_NUM}  n  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Dry Run"         "Preview only — no changes will be made"
+  echo ""
+  menu_line
+  echo ""
+  printf "  ${M_RUN}  *  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Run ALL modules" "Executes 1 2 3 4 5 at once"
+  printf "  ${M_WARN}  q  ${C_RESET}  ${M_LABEL}%s${C_RESET}\n" "Quit"
+  echo ""
+  menu_line
+  echo ""
+  echo -e "${M_DESC}    Profile: ${C_RESET}${M_INFO}${PROFILE}${C_RESET}${M_DESC}  ·  change with: p=safe  p=normal  p=aggressive${C_RESET}"
+  echo ""
+  echo -ne "${M_RUN}  ❯ ${C_RESET}"
+}
 
-    echo -e "${CY_LOGO}"
-    echo '       ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗'
-    echo '       ╚════╝  ╚═╝╚═╝   ╚══╝╚═════╝  PROFILE SELECT'
-    echo -e "${C_RESET}"
+menu_step_header() {
+  local num="$1" name="$2" icon="$3"
+  echo ""
+  echo -e "${M_STEP}  ╔══════════════════════════════════════════════════════╗${C_RESET}"
+  printf  "${M_STEP}  ║${C_RESET}  ${M_NUM}[%s]${C_RESET}  ${M_LABEL}%-46s${C_RESET}${M_STEP}║${C_RESET}\n" "$num" "$icon  $name"
+  echo -e "${M_STEP}  ╚══════════════════════════════════════════════════════╝${C_RESET}"
+  echo ""
+}
 
-    printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-    printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION} ▸ SELECT CLEANUP PROFILE%-$((W-29))s${CY_BORDER}│${C_RESET}\n" ""
-    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
+menu_step_result() {
+  local rc="$1" name="$2"
+  if [[ "$rc" -eq 0 ]]; then
+    echo -e "\n  ${M_OK}✔  $name — done${C_RESET}"
+  else
+    echo -e "\n  ${M_ERR}✖  $name — finished with warnings (exit $rc)${C_RESET}"
+  fi
+  echo ""
+}
 
-    local i
-    for (( i=0; i<3; i++ )); do
-      if [[ "$i" == "$cur" ]]; then
-        printf "${CY_BORDER}  │${C_RESET} ${CY_CURSOR}❯${C_RESET} ${CY_ON}%-12s${C_RESET}  ${CY_DESC_HL}%-$((W-22))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
-          "${profiles[$i]}" "${descs[$i]}"
-      else
-        printf "${CY_BORDER}  │${C_RESET}   ${CY_LABEL}%-12s${C_RESET}  ${CY_DESC}%-$((W-22))s${C_RESET}${CY_BORDER}│${C_RESET}\n" \
-          "${profiles[$i]}" "${descs[$i]}"
-      fi
-    done
-
-    printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-    printf "${CY_BORDER}  │${C_RESET}  ${CY_LEGEND_KEY}↑↓${C_RESET}${CY_LEGEND_TXT} navigate  ${CY_LEGEND_KEY}ENTER${C_RESET}${CY_LEGEND_TXT} select  ${CY_LEGEND_KEY}Q${C_RESET}${CY_LEGEND_TXT} cancel%-$((W-50))s${CY_BORDER}│${C_RESET}\n" ""
-    printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-
-    local key=""
-    IFS= read -rsn1 key
-    case "$key" in
-      $'\x1b')
-        IFS= read -rsn2 -t 0.1 key || true
-        case "$key" in
-          '[A') (( cur > 0 )) && (( cur-- )) || true ;;
-          '[B') (( cur < 2 )) && (( cur++ )) || true ;;
-        esac ;;
-      '') PROFILE="${profiles[$cur]}"; return 0 ;;
-      q|Q) return 0 ;;
-    esac
+menu_summary() {
+  local freed="$1"; shift
+  local ran=("$@")
+  echo ""
+  echo -e "${M_STEP}  ╔══════════════════════════════════════════════════════╗${C_RESET}"
+  echo -e "${M_STEP}  ║${C_RESET}  ${M_LABEL}SUMMARY$(printf '%*s' 47 '')${M_STEP}║${C_RESET}"
+  echo -e "${M_STEP}  ╠══════════════════════════════════════════════════════╣${C_RESET}"
+  for item in "${ran[@]}"; do
+    printf "${M_STEP}  ║${C_RESET}  ${M_OK}✔${C_RESET}  ${M_INFO}%-49s${C_RESET}${M_STEP}║${C_RESET}\n" "$item"
   done
+  echo -e "${M_STEP}  ╠══════════════════════════════════════════════════════╣${C_RESET}"
+  printf  "${M_STEP}  ║${C_RESET}  ${M_LABEL}%-20s${C_RESET}${M_RUN}%-31s${C_RESET}${M_STEP}║${C_RESET}\n" \
+    "Space freed:" "$freed"
+  printf  "${M_STEP}  ║${C_RESET}  ${M_LABEL}%-20s${C_RESET}${M_INFO}%-31s${C_RESET}${M_STEP}║${C_RESET}\n" \
+    "Log file:" "$LOG_FILE"
+  if [[ "$REPORT_MODE" -eq 1 ]]; then
+    printf "${M_STEP}  ║${C_RESET}  ${M_LABEL}%-20s${C_RESET}${M_INFO}%-31s${C_RESET}${M_STEP}║${C_RESET}\n" \
+      "Report:" "$REPORT_FILE"
+  fi
+  echo -e "${M_STEP}  ╚══════════════════════════════════════════════════════╝${C_RESET}"
+  echo ""
 }
 
 tui_main_menu() {
-  MOD_CLEAN=0; MOD_NETWORK=0; MOD_SECURITY=0; MOD_HEALTH=0; MOD_APPCACHE=0
-
-  MENU_ITEMS_LABEL=( "── MODULES ──" "Disk Cleanup" "Network Audit" "Security Audit" "Health Check" "App Cache" "── CLEANUP OPTIONS ──" "Profile" "Docker Cleanup" "Skip User Cache" "── OUTPUT ──" "Dry Run" "Generate Report" "── RUN ──" "▶  START" "✖  QUIT" )
-  MENU_ITEMS_DESC=( "" "Package mgr, journal, temp, logs, snap, flatpak" "Ports, firewall, connections, sensitive services" "SUID, SSH config, sudo, password audit" "CPU/RAM/disk alerts, failed services, OOM" "npm, pip, cargo, Go, Maven, Gradle" "" "safe | normal | aggressive" "Clean unused Docker images/volumes/containers" "Do not clean ~/.cache" "" "Preview commands — nothing is executed" "Save Markdown report to /tmp/report-DATE.md" "" "Execute all selected modules now" "Exit without running" )
-  MENU_ITEMS_STATE=( "" "0" "0" "0" "0" "0" "" "normal" "0" "0" "" "0" "0" "" "run" "quit" )
-  MENU_ITEMS_TYPE=( "separator" "toggle" "toggle" "toggle" "toggle" "toggle" "separator" "select" "toggle" "toggle" "separator" "toggle" "toggle" "separator" "action" "action" )
-  MENU_ITEMS_KEY=( "" "MOD_CLEAN" "MOD_NETWORK" "MOD_SECURITY" "MOD_HEALTH" "MOD_APPCACHE" "" "PROFILE" "ENABLE_DOCKER" "NO_USER_CACHE" "" "DRY_RUN" "REPORT_MODE" "" "RUN" "QUIT" )
-
-  local cursor=1
-  local total=${#MENU_ITEMS_LABEL[@]}
-  tput smcup 2>/dev/null || true
-
-  while true; do
-    tui_draw_menu "$cursor" "  MAIN MENU  "
-    local key=""
-    IFS= read -rsn1 key
-
-    case "$key" in
-      $'\x1b')
-        IFS= read -rsn2 -t 0.1 key || true
-        case "$key" in
-          '[A')
-            local prev=$cursor
-            (( cursor-- )) || true
-            while [[ $cursor -ge 0 && "${MENU_ITEMS_TYPE[$cursor]}" == "separator" ]]; do (( cursor-- )) || true; done
-            [[ $cursor -lt 0 ]] && cursor=$prev ;;
-          '[B')
-            local prev=$cursor
-            (( cursor++ )) || true
-            while [[ $cursor -lt $total && "${MENU_ITEMS_TYPE[$cursor]}" == "separator" ]]; do (( cursor++ )) || true; done
-            [[ $cursor -ge $total ]] && cursor=$prev ;;
-        esac ;;
-
-      ' '|'')
-        local itype="${MENU_ITEMS_TYPE[$cursor]}"
-        local ikey="${MENU_ITEMS_KEY[$cursor]}"
-        if [[ "$itype" == "toggle" ]]; then
-          [[ "${MENU_ITEMS_STATE[$cursor]}" == "1" ]] && MENU_ITEMS_STATE[$cursor]="0" || MENU_ITEMS_STATE[$cursor]="1"
-        elif [[ "$itype" == "select" ]]; then
-          tui_profile_menu; MENU_ITEMS_STATE[$cursor]="$PROFILE"
-        elif [[ "$itype" == "action" ]]; then
-          if [[ "$ikey" == "RUN" ]]; then break
-          elif [[ "$ikey" == "QUIT" ]]; then
-            tput rmcup 2>/dev/null || true; tui_show_cursor
-            echo -e "\n${C_YELLOW}Aborted.${C_RESET}\n"; exit 0
-          fi
-        fi ;;
-
-      a|A) for idx in 1 2 3 4 5; do MENU_ITEMS_STATE[$idx]="1"; done ;;
-      n|N) for idx in 1 2 3 4 5; do MENU_ITEMS_STATE[$idx]="0"; done ;;
-
-      q|Q)
-        tput rmcup 2>/dev/null || true; tui_show_cursor
-        echo -e "\n${C_YELLOW}Aborted.${C_RESET}\n"; exit 0 ;;
-    esac
-  done
-
-  # Apply selections to variables
-  MOD_CLEAN="${MENU_ITEMS_STATE[1]}"
-  MOD_NETWORK="${MENU_ITEMS_STATE[2]}"
-  MOD_SECURITY="${MENU_ITEMS_STATE[3]}"
-  MOD_HEALTH="${MENU_ITEMS_STATE[4]}"
-  MOD_APPCACHE="${MENU_ITEMS_STATE[5]}"
-  PROFILE="${MENU_ITEMS_STATE[7]}"
-  ENABLE_DOCKER="${MENU_ITEMS_STATE[8]}"
-  [[ "${MENU_ITEMS_STATE[9]}" == "1" ]] && CLEAN_USER_CACHE=0 || CLEAN_USER_CACHE=1
-  DRY_RUN="${MENU_ITEMS_STATE[11]}"
-  REPORT_MODE="${MENU_ITEMS_STATE[12]}"
-  [[ "$REPORT_MODE" == "1" && -z "$REPORT_FILE" ]] && \
-    REPORT_FILE="/tmp/linux-admin-report-$(date +%Y%m%d_%H%M%S).md"
   AUTO_YES=1
+  while true; do
+    menu_show
+    local input=""
+    read -r input
+    echo ""
+    [[ "$input" =~ ^[qQ]$ ]] && echo -e "${M_WARN}  Bye.${C_RESET}\n" && exit 0
+    [[ -z "$input" ]] && continue
 
-  tput rmcup 2>/dev/null || true
-  tui_show_cursor
+    MOD_CLEAN=0; MOD_NETWORK=0; MOD_SECURITY=0; MOD_HEALTH=0; MOD_APPCACHE=0
+    ENABLE_DOCKER=0; REPORT_MODE=0; DRY_RUN=0
 
-  if [[ "$MOD_CLEAN" == "0" && "$MOD_NETWORK" == "0" && \
-        "$MOD_SECURITY" == "0" && "$MOD_HEALTH" == "0" && "$MOD_APPCACHE" == "0" ]]; then
-    echo -e "\n${CY_ACTION_QUIT}  ⚠  No modules selected. Run again and select at least one.${C_RESET}\n"
-    exit 1
-  fi
+    local token
+    for token in $input; do
+      case "$token" in
+        1)    MOD_CLEAN=1 ;;
+        2)    MOD_NETWORK=1 ;;
+        3)    MOD_SECURITY=1 ;;
+        4)    MOD_HEALTH=1 ;;
+        5)    MOD_APPCACHE=1 ;;
+        \*)   MOD_CLEAN=1; MOD_NETWORK=1; MOD_SECURITY=1; MOD_HEALTH=1; MOD_APPCACHE=1 ;;
+        d|D)  ENABLE_DOCKER=1 ;;
+        r|R)  REPORT_MODE=1
+              [[ -z "$REPORT_FILE" ]] && \
+                REPORT_FILE="/tmp/linux-admin-report-$(date +%Y%m%d_%H%M%S).md" ;;
+        n|N)  DRY_RUN=1 ;;
+        p=safe|p=normal|p=aggressive) PROFILE="${token#p=}" ;;
+        q|Q)  echo -e "${M_WARN}  Bye.${C_RESET}\n"; exit 0 ;;
+        *)    echo -e "${M_WARN}  Unknown option: '${token}' — ignored.${C_RESET}" ;;
+      esac
+    done
 
-  # ── Launch summary ─────────────────────────────────────
-  local W=72
-  local mod_list=""
-  [[ "$MOD_CLEAN"    == "1" ]] && mod_list+="${CY_ON}Cleanup${C_RESET} "
-  [[ "$MOD_NETWORK"  == "1" ]] && mod_list+="${CY_ON}Network${C_RESET} "
-  [[ "$MOD_SECURITY" == "1" ]] && mod_list+="${CY_ON}Security${C_RESET} "
-  [[ "$MOD_HEALTH"   == "1" ]] && mod_list+="${CY_ON}Health${C_RESET} "
-  [[ "$MOD_APPCACHE" == "1" ]] && mod_list+="${CY_ON}AppCache${C_RESET} "
+    if [[ "$MOD_CLEAN" -eq 0 && "$MOD_NETWORK" -eq 0 && "$MOD_SECURITY" -eq 0 \
+       && "$MOD_HEALTH" -eq 0 && "$MOD_APPCACHE" -eq 0 ]]; then
+      echo -e "${M_WARN}  No modules selected. Try again.${C_RESET}\n"
+      sleep 1; continue
+    fi
 
-  echo ""
-  printf "${CY_BORDER}  ┌%s┐${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-  printf "${CY_BORDER}  │${C_RESET} ${CY_SECTION} ▸ LAUNCHING WITH CONFIGURATION%-$((W-36))s${CY_BORDER}│${C_RESET}\n" ""
-  printf "${CY_BORDER}  ├%s┤${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %b\n" "Modules"    "$mod_list"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} ${CY_SELECT}%s${C_RESET}\n" "Profile"      "$PROFILE"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Docker"     "$([[ "$ENABLE_DOCKER" == "1" ]] && echo -e "${CY_ON}enabled${C_RESET}" || echo -e "${CY_OFF}disabled${C_RESET}")"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "User cache"  "$([[ "$CLEAN_USER_CACHE" == "1" ]] && echo -e "${CY_ON}will clean${C_RESET}" || echo -e "${CY_OFF}skipped${C_RESET}")"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Dry run"    "$([[ "$DRY_RUN" == "1" ]] && echo -e "${CY_ACTION_QUIT}YES — no changes${C_RESET}" || echo -e "${CY_OFF}off${C_RESET}")"
-  printf "${CY_BORDER}  │${C_RESET}  ${CY_LABEL}%-16s${C_RESET} %s\n" "Report"     "$([[ "$REPORT_MODE" == "1" ]] && echo -e "${CY_ON}$REPORT_FILE${C_RESET}" || echo -e "${CY_OFF}off${C_RESET}")"
-  printf "${CY_BORDER}  └%s┘${C_RESET}\n" "$(printf '─%.0s' $(seq 1 $((W-4))))"
-  echo ""
+    # Re-init distro + profile
+    DISTRO_ID="unknown"; DISTRO_LIKE=""; DISTRO_PRETTY="Unknown"
+    if [[ -r /etc/os-release ]]; then
+      source /etc/os-release
+      DISTRO_ID="${ID:-unknown}"; DISTRO_LIKE="${ID_LIKE:-}"
+      DISTRO_PRETTY="${PRETTY_NAME:-$DISTRO_ID}"
+    fi
+    case "$PROFILE" in
+      safe)       JOURNAL_KEEP="30days"; LOG_TRUNCATE_THRESHOLD="+500M" ;;
+      normal)     JOURNAL_KEEP="14days"; LOG_TRUNCATE_THRESHOLD="+100M" ;;
+      aggressive) JOURNAL_KEEP="7days";  LOG_TRUNCATE_THRESHOLD="+50M" ;;
+    esac
+    [[ "$DRY_RUN" -eq 1 ]] && echo -e "${M_WARN}  DRY-RUN mode — no changes will be made.${C_RESET}\n"
+
+    if [[ "$REPORT_MODE" -eq 1 ]]; then
+      { echo "# Linux Admin & Cleaner Report"
+        echo "**Date:** $(date '+%F %T')"
+        echo "**Host:** $(hostname)"
+        echo "**Distro:** $DISTRO_PRETTY"
+        echo "**Profile:** $PROFILE"
+      } > "$REPORT_FILE"
+    fi
+
+    local initial_bytes
+    initial_bytes="$(df -B1 --output=used / | tail -n 1 | tr -d ' ')"
+    local ran_modules=()
+    local rc=0
+
+    if [[ "$MOD_CLEAN" -eq 1 ]]; then
+      menu_step_header 1 "Disk Cleanup" ">>>"
+      rc=0
+      cleanup_packages  || rc=$?
+      cleanup_journal   || rc=$?
+      cleanup_temp      || rc=$?
+      cleanup_large_logs || rc=$?
+      cleanup_user_cache || rc=$?
+      cleanup_flatpak   || rc=$?
+      cleanup_snap      || rc=$?
+      cleanup_docker    || rc=$?
+      menu_step_result $rc "Disk Cleanup"
+      ran_modules+=("Disk Cleanup")
+    fi
+    if [[ "$MOD_NETWORK" -eq 1 ]]; then
+      menu_step_header 2 "Network Audit" ">>>"
+      rc=0; run_network_audit || rc=$?
+      menu_step_result $rc "Network Audit"
+      ran_modules+=("Network Audit")
+    fi
+    if [[ "$MOD_SECURITY" -eq 1 ]]; then
+      menu_step_header 3 "Security Audit" ">>>"
+      rc=0; run_security_audit || rc=$?
+      menu_step_result $rc "Security Audit"
+      ran_modules+=("Security Audit")
+    fi
+    if [[ "$MOD_HEALTH" -eq 1 ]]; then
+      menu_step_header 4 "Health Check" ">>>"
+      rc=0; run_health_check || rc=$?
+      menu_step_result $rc "Health Check"
+      ran_modules+=("Health Check")
+    fi
+    if [[ "$MOD_APPCACHE" -eq 1 ]]; then
+      menu_step_header 5 "App Cache Cleanup" ">>>"
+      rc=0; run_appcache_clean || rc=$?
+      menu_step_result $rc "App Cache Cleanup"
+      ran_modules+=("App Cache Cleanup")
+    fi
+
+    local final_bytes
+    final_bytes="$(df -B1 --output=used / | tail -n 1 | tr -d ' ')"
+    local freed_bytes=$(( initial_bytes - final_bytes ))
+    local freed_human="${freed_bytes} bytes"
+    if require_cmd numfmt; then
+      freed_human="$(numfmt --to=iec-i --suffix=B "$freed_bytes" 2>/dev/null || echo "${freed_bytes} bytes")"
+    fi
+    [[ "$freed_bytes" -lt 0 ]] && freed_human="~0 (metadata updates)"
+
+    if [[ "$REPORT_MODE" -eq 1 ]]; then
+      { echo ""; echo "---"
+        echo "**Space freed:** $freed_human"
+        echo "*Generated by linux-admin-cleaner v${VERSION} — $(date '+%F %T')*"
+      } >> "$REPORT_FILE"
+      echo -e "\n  ${M_OK}✔  Report saved: $REPORT_FILE${C_RESET}"
+    fi
+
+    menu_summary "$freed_human" "${ran_modules[@]}"
+    echo -e "${M_DESC}  Log: ${M_INFO}${LOG_FILE}${C_RESET}\n"
+
+    echo -ne "${M_DESC}  Run again? ${C_RESET}${M_NUM}[y/n]${C_RESET}${M_RUN} ❯ ${C_RESET}"
+    local again=""
+    read -r again
+    echo ""
+    [[ ! "$again" =~ ^[Yy]$ ]] && echo -e "${M_OK}  Done. Bye!${C_RESET}\n" && exit 0
+  done
 }
+
 
 # ---------- Parse args ----------
 while [[ $# -gt 0 ]]; do
@@ -563,8 +530,8 @@ if [[ "$REPORT_MODE" -eq 1 ]]; then
   log_ok "Report initialized: $REPORT_FILE"
 fi
 
-# ---------- Banner ----------
-echo -e "${CY_LOGO}"
+# ---------- Banner (shown when run via CLI flags, not menu) ----------
+echo -e "\e[1;38;5;34m"
 cat <<'BANNER'
   ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗
   ██║     ██║████╗  ██║██║   ██║╚██╗██╔╝
@@ -572,7 +539,6 @@ cat <<'BANNER'
   ██║     ██║██║╚██╗██║██║   ██║ ██╔██╗
   ███████╗██║██║ ╚████║╚██████╔╝██╔╝ ██╗
   ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝
-     Admin & Cleaner  v2.0  — by Hawax
 BANNER
 echo -e "${C_RESET}"
 
