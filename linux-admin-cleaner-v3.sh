@@ -223,11 +223,11 @@ menu_show() {
   echo -e "${M_DESC}    Options — add to your selection:${C_RESET}"
   echo ""
   printf "  ${M_NUM}  d  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Docker cleanup"  "Include Docker images / volumes / containers"
+    "Docker cleanup"  "Add to '1' or alone (auto-enables Disk Cleanup)"
   printf "  ${M_NUM}  r  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Generate Report" "Save Markdown report to /tmp/report-DATE.md"
+    "Generate Report" "Works with any module — saves results to /tmp/"
   printf "  ${M_NUM}  n  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Dry Run"         "Preview only — no changes will be made"
+    "Dry Run"         "Works with any module — preview only, no changes"
   echo ""
   menu_line
   echo ""
@@ -319,8 +319,14 @@ tui_main_menu() {
 
     if [[ "$MOD_CLEAN" -eq 0 && "$MOD_NETWORK" -eq 0 && "$MOD_SECURITY" -eq 0 \
        && "$MOD_HEALTH" -eq 0 && "$MOD_APPCACHE" -eq 0 ]]; then
-      echo -e "${M_WARN}  No modules selected. Try again.${C_RESET}\n"
-      sleep 1; continue
+      # d alleine → implizit Disk Cleanup aktivieren
+      if [[ "$ENABLE_DOCKER" -eq 1 ]]; then
+        echo -e "${M_INFO}  Hint: 'd' runs together with Disk Cleanup — activating module 1 automatically.${C_RESET}\n"
+        MOD_CLEAN=1
+      else
+        echo -e "${M_WARN}  No module selected. Enter at least one number (1–5) or * for all.${C_RESET}\n"
+        sleep 1; continue
+      fi
     fi
 
     # Re-init distro + profile
