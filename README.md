@@ -1,209 +1,248 @@
-# Linux Cleaner
+# Linux Admin & Cleaner v2.0
 
-A cross-distro Linux cleanup script that safely frees disk space by cleaning package caches, logs, temp files, and optional Docker/Flatpak/Snap data.
-
-## Features
-
-- ✅ Cross-distro support (auto-detects package manager)
-- ✅ Safe cleanup (no risky automatic kernel removal)
-- ✅ Package cache cleanup
-- ✅ System journal cleanup (`journalctl`)
-- ✅ Temporary file cleanup (`/tmp`, `/var/tmp`)
-- ✅ Large log truncation in `/var/log`
-- ✅ Optional user cache cleanup (`~/.cache`)
-- ✅ Optional Flatpak cleanup
-- ✅ Optional Snap cleanup (disabled revisions)
-- ✅ Optional Docker cleanup
-- ✅ `--dry-run` mode (preview commands before execution)
-- ✅ `--install` mode (install to `/usr/local/bin`)
-- ✅ Cleanup profiles: `safe`, `normal`, `aggressive`
+A cross-distro Linux admin toolkit that combines **disk cleanup**, **network auditing**, **security checks**, **health monitoring**, and **developer cache cleanup** — all in a single hardened Bash script.
 
 ---
 
-## Supported Distributions
+## ✨ What's New in v2.0
 
-The script is designed to work on:
-
-- **Ubuntu / Debian** (`apt`)
-- **Arch Linux** (`pacman`)
-- **Fedora / RHEL** (`dnf` / `yum`)
-- **openSUSE** (`zypper`)
-- **Alpine Linux** (`apk`)
-
----
-
-## Why this script?
-
-This project is built as a **safe baseline Linux cleaner**.
-
-It avoids dangerous actions like:
-- automatic kernel removal
-- blindly deleting critical directories
-- distro-specific destructive commands without checks
-
-It is meant to be a practical CLI tool you can run on personal systems, workstations, and servers.
+| Feature | v1 | v2 |
+|---|---|---|
+| Colored terminal output | ❌ | ✅ ANSI colors |
+| Network analysis module | ❌ | ✅ ports, firewall, connections |
+| Security audit module | ❌ | ✅ SUID, SSH, sudo, passwords |
+| System health check | ❌ | ✅ CPU/RAM/disk/services |
+| App cache cleaner | ❌ | ✅ npm/pip/cargo/go/maven/gradle |
+| Markdown report output | ❌ | ✅ `--report` flag |
+| Modular execution | ❌ | ✅ run any combination |
+| ASCII banner | ❌ | ✅ |
 
 ---
 
-## Installation
+## 📦 Modules
 
-### Option 1: Run directly
+### `--clean` *(default)*
+Package manager cache, systemd journal, temp files, large logs, user cache, Flatpak, Snap, Docker.
 
-```bash
+### `--network`
+- Network interfaces and default gateway
+- DNS resolver check
+- All listening TCP ports with owning process
+- Active established connection count
+- Firewall status (ufw / firewalld / iptables)
+- Scan for open sensitive ports (FTP, Telnet, SMB, Redis, MongoDB, etc.)
 
-sudo git clone https://github.com/hawaxgit/linux-cleaner-cli.git
-sudo chmod +x linux-cleaner.sh
-sudo ./linux-cleaner.sh --dry-run
-```
+### `--security`
+- SUID/SGID binary scan (outside standard paths)
+- World-writable file detection
+- `/etc/passwd` shell user review
+- Empty/locked password account check
+- SSH hardening check (`PermitRootLogin`, `PasswordAuthentication`, `X11Forwarding`, etc.)
+- NOPASSWD sudo entry detection
+- Recent failed login attempts
 
-### Option 2: Install globally
+### `--health`
+- Uptime
+- CPU load average with threshold alerts
+- Memory usage with low-memory warnings
+- Disk usage per mount with >85% / >90% alerts
+- Failed systemd services
+- OOM kill detection from journal
+- Top 10 memory-consuming processes
 
-```bash
-sudo chmod +x linux-cleaner.sh
-sudo ./linux-cleaner.sh --install
-```
-
-Then run it from anywhere:
-
-```bash
-sudo linux-cleaner.sh --yes
-```
-
----
-
-## Usage
-
-```bash
-sudo ./linux-cleaner.sh [OPTIONS]
-```
-
-### Available Options
-
-- `--install` → Install script to `/usr/local/bin`
-- `--dry-run` → Show commands only (do not execute)
-- `--yes` → Non-interactive mode (auto-confirm prompts)
-- `--profile safe|normal|aggressive` → Cleanup profile (default: `normal`)
-- `--docker` → Enable Docker cleanup
-- `--no-user-cache` → Skip cleaning user cache (`~/.cache`)
-- `--version` → Show script version
-- `-h, --help` → Show help
+### `--app-cache`
+- npm cache
+- pip / pip3 cache
+- Cargo (Rust) registry
+- Go module cache
+- Maven local repository
+- Gradle caches
 
 ---
 
-## Examples
+## 🖥️ Supported Distributions
 
-### Preview cleanup without making changes
+| Distro | Package Manager |
+|---|---|
+| Ubuntu / Debian | `apt` |
+| Arch Linux | `pacman` + `paccache` |
+| Fedora / RHEL | `dnf` |
+| CentOS (older) | `yum` |
+| openSUSE | `zypper` |
+| Alpine Linux | `apk` |
 
+---
+
+## 🚀 Installation
+
+**Option 1 — Run directly:**
 ```bash
-sudo ./linux-cleaner.sh --dry-run --profile safe
+git clone https://github.com/hawaxgit/linux-admin-cleaner.git
+cd linux-admin-cleaner
+chmod +x linux-admin-cleaner.sh
+sudo ./linux-admin-cleaner.sh --dry-run --all
 ```
 
-### Run normal cleanup (non-interactive)
-
+**Option 2 — Install globally:**
 ```bash
-sudo ./linux-cleaner.sh --yes
-```
-
-### Run aggressive cleanup with Docker cleanup enabled
-
-```bash
-sudo ./linux-cleaner.sh --yes --profile aggressive --docker
-```
-
-### Skip user cache cleanup
-
-```bash
-sudo ./linux-cleaner.sh --yes --no-user-cache
+chmod +x linux-admin-cleaner.sh
+sudo ./linux-admin-cleaner.sh --install
+# Then run from anywhere:
+sudo linux-admin-cleaner.sh --yes --all
 ```
 
 ---
 
-## Profiles
+## ⚙️ Usage
 
-### `safe`
-- Keeps more journal logs
-- Truncates only very large log files
-- Most conservative cleanup behavior
+```bash
+sudo ./linux-admin-cleaner.sh [OPTIONS] [MODULES]
+```
 
-### `normal`
-- Balanced cleanup mode
-- Recommended default for most users
+### Modules
 
-### `aggressive`
-- Cleans more aggressively
-- Shorter journal retention
-- Smaller log truncation threshold
-- Can prune Docker more deeply (with confirmation)
+| Flag | Description |
+|---|---|
+| `--clean` | Run disk/package cleanup *(default if no module specified)* |
+| `--network` | Run network analysis & port audit |
+| `--security` | Run security audit |
+| `--health` | Run system health check |
+| `--app-cache` | Clean developer/app caches |
+| `--all` | Enable all modules |
+
+### Options
+
+| Flag | Description |
+|---|---|
+| `--install` | Install script to `/usr/local/bin` |
+| `--dry-run` | Preview commands without executing |
+| `--yes` | Non-interactive, auto-confirm all prompts |
+| `--profile safe\|normal\|aggressive` | Cleanup aggressiveness (default: `normal`) |
+| `--docker` | Enable Docker cleanup |
+| `--no-user-cache` | Skip `~/.cache` cleanup |
+| `--report [FILE]` | Generate Markdown report (default: `/tmp/report-DATE.md`) |
+| `--version` | Show version |
+| `-h, --help` | Show help |
 
 ---
 
-## What gets cleaned?
+## 💡 Examples
 
-Depending on your distro and enabled options, the script may clean:
+```bash
+# Preview everything, no changes
+sudo ./linux-admin-cleaner.sh --dry-run --all
 
-- package manager cache (`apt`, `pacman`, `dnf`, `yum`, `zypper`, `apk`)
-- orphan packages (Arch Linux / `pacman`)
+# Safe cleanup only, non-interactive
+sudo ./linux-admin-cleaner.sh --yes --profile safe
+
+# Full aggressive cleanup + Docker
+sudo ./linux-admin-cleaner.sh --yes --profile aggressive --docker
+
+# Security + network audit with report
+sudo ./linux-admin-cleaner.sh --yes --security --network --report /root/audit.md
+
+# Full run with report saved to custom path
+sudo ./linux-admin-cleaner.sh --yes --all --report /root/reports/$(hostname)-$(date +%F).md
+
+# Health check + app cache cleanup only
+sudo ./linux-admin-cleaner.sh --yes --health --app-cache
+```
+
+---
+
+## 🔒 Profiles
+
+| Profile | Journal Retention | Log Truncation Threshold | Behavior |
+|---|---|---|---|
+| `safe` | 30 days | > 500MB | Conservative, minimal risk |
+| `normal` | 14 days | > 100MB | Balanced, recommended default |
+| `aggressive` | 7 days | > 50MB | Deep clean, prompts for destructive actions |
+
+---
+
+## 📋 Report Output
+
+Use `--report` to generate a structured Markdown report:
+
+```bash
+sudo ./linux-admin-cleaner.sh --yes --all --report /tmp/server-audit.md
+```
+
+The report includes:
+- System metadata (hostname, distro, kernel, date)
+- Network findings with open port table
+- Security findings with severity indicators
+- Health metrics and alerts
+- Disk usage before/after
+- Space freed summary
+
+---
+
+## 📁 What Gets Cleaned
+
+Depending on active modules and options:
+
+- Package manager cache (apt, pacman, dnf, yum, zypper, apk)
+- Orphan packages (Arch)
 - systemd journal logs
-- temporary files (`/tmp`, `/var/tmp`)
-- very large files in `/var/log`
-- user cache (`~/.cache`)
-- unused Flatpak runtimes/apps
-- disabled Snap revisions
-- unused Docker resources (optional)
+- Temporary files (`/tmp`, `/var/tmp`)
+- Large files in `/var/log`
+- User cache (`~/.cache`)
+- Unused Flatpak runtimes
+- Disabled Snap revisions
+- Unused Docker resources *(optional)*
+- npm, pip, cargo, Go, Maven, Gradle caches *(--app-cache)*
 
 ---
 
-## Safety Notes
+## ⚠️ Safety Notes
 
-- Some actions require `sudo`
-- Always use `--dry-run` first if you want to preview actions
-- User cache cleanup may cause apps (browser/IDE/etc.) to rebuild cache on next launch
-- On Arch Linux, `paccache` is provided by `pacman-contrib`
-- Docker cleanup can remove unused images, containers, and volumes (depending on mode)
+- Always run `--dry-run` first on production systems
+- The security audit is **read-only** — it never modifies files
+- User cache cleanup may cause apps to rebuild on next launch
+- Docker cleanup with `--profile aggressive` removes **all** unused images and volumes
+- On Arch: `paccache` requires `pacman-contrib`
 
 ---
 
-## Logs
+## 📄 Logs
 
-The script writes a runtime log file to:
-
-```bash
-/tmp/linux-cleaner_YYYYMMDD_HHMMSS.log
+Runtime log is always written to:
+```
+/tmp/linux-admin-cleaner_YYYYMMDD_HHMMSS.log
 ```
 
-This helps with troubleshooting and reviewing what was cleaned.
-
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
-- [ ] `--report` (Markdown / HTML summary output)
-- [ ] `--exclude` option (skip selected cache paths)
-- [ ] App cache cleanup (`npm`, `pip`, `cargo`, etc.)
+- [ ] `--exclude` option (skip specific paths/modules)
 - [ ] systemd timer installer (scheduled cleanup)
-- [ ] Colored output / improved CLI UI
-- [ ] GitHub Actions with `shellcheck`
+- [ ] HTML report format
+- [ ] Email report delivery
+- [ ] GitHub Actions CI with ShellCheck
+- [ ] Rootkit basic detection (chkrootkit/rkhunter wrapper)
+- [ ] Automatic update check
 
 ---
 
-## License
+## 📜 License
 
 MIT
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
-Pull requests, ideas, and improvements are welcome.
+Pull requests, issues, and improvements are welcome.
 
-If you find a distro-specific issue, please open an issue with:
-
-- distro name and version
-- command output / error message
-- the exact command you ran (`--dry-run` output is very helpful)
+When reporting a bug, please include:
+- Distro name and version
+- Command output or error message
+- The exact command you ran (`--dry-run` output is very helpful)
 
 ---
 
-## Author
+## 👤 Author
 
-Soroush @ Hawax
+**Soroush @ Hawax**
