@@ -170,7 +170,14 @@ EOF
 # ==========================================================
 
 tui_clear_screen() { printf '\033[2J\033[H'; }
-trap 'tput rmcup 2>/dev/null || true' EXIT INT TERM
+cleanup_on_exit() {
+  tput rmcup 2>/dev/null || true   # exit alt screen if active
+  tput cnorm 2>/dev/null || true   # restore cursor
+  tput sgr0  2>/dev/null || true   # reset colors
+  stty sane  2>/dev/null || true   # restore terminal settings
+  echo ""                           # clean newline
+}
+trap cleanup_on_exit EXIT INT TERM
 
 # ── Menu color palette ────────────────────────────────────
 M_NUM="\e[1;38;5;220m"     # number — yellow
@@ -206,38 +213,53 @@ menu_show() {
   echo -e "${M_DESC}    Enter numbers separated by spaces  (e.g.  1 3 4  or  * r)${C_RESET}"
   echo ""
   menu_line
-  echo ""
-  printf "  ${M_NUM}  1  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Disk Cleanup"   "Package cache · journal · temp · logs · snap · flatpak"
-  printf "  ${M_NUM}  2  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Network Audit"  "Open ports · firewall · sensitive services · connections"
-  printf "  ${M_NUM}  3  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Security Audit" "SUID · SSH config · sudo entries · password check"
-  printf "  ${M_NUM}  4  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Health Check"   "CPU · RAM · disk usage · failed services · OOM kills"
-  printf "  ${M_NUM}  5  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "App Cache"      "npm · pip · cargo · Go · Maven · Gradle"
-  echo ""
+  echo -e "${M_DESC}    System Tools${C_RESET}"
   menu_line
   echo ""
+  printf "  ${M_NUM}  1  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Disk Cleanup"     "Package cache · journal · temp · logs · snap · flatpak"
+  printf "  ${M_NUM}  2  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Network Audit"    "Interfaces · open ports · firewall · sensitive services"
+  printf "  ${M_NUM}  3  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Security Audit"   "SUID · SSH config · sudo entries · password check"
+  printf "  ${M_NUM}  4  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Health Check"     "CPU · RAM · disk usage · failed services · OOM kills"
+  printf "  ${M_NUM}  5  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "App Cache"        "npm · pip · cargo · Go · Maven · Gradle"
+  echo ""
+  menu_line
+  echo -e "${M_WARN}    Network Security${C_RESET}"
+  menu_line
+  echo ""
+  printf "  ${M_NUM}  6  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Port Scanner"     "Scan open ports on any target IP (nmap / bash fallback)"
+  printf "  ${M_NUM}  7  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "ARP Scan"         "Discover all devices on local network"
+  printf "  ${M_NUM}  8  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Brute-Force Monitor" "Failed logins · attacking IPs · fail2ban · root SSH"
+  printf "  ${M_NUM}  9  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Bandwidth Monitor" "Live speed · total traffic · top connections · nethogs"
+  echo ""
+  menu_line
   echo -e "${M_DESC}    Options — add to your selection:${C_RESET}"
+  menu_line
   echo ""
-  printf "  ${M_NUM}  d  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Docker cleanup"  "Add to '1' or alone (auto-enables Disk Cleanup)"
-  printf "  ${M_NUM}  r  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Generate Report" "Works with any module — saves results to /tmp/"
-  printf "  ${M_NUM}  n  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Dry Run"         "Works with any module — preview only, no changes"
+  printf "  ${M_NUM}  d  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Docker cleanup"   "Add to '1' or alone (auto-enables Disk Cleanup)"
+  printf "  ${M_NUM}  r  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Generate Report"  "Works with any module — saves results to /tmp/"
+  printf "  ${M_NUM}  n  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Dry Run"          "Works with any module — preview only, no changes"
   echo ""
   menu_line
   echo ""
-  printf "  ${M_RUN}  *  ${C_RESET}  ${M_LABEL}%-20s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Run ALL modules" "Executes 1 2 3 4 5 at once"
+  printf "  ${M_RUN}  *  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Run ALL modules"  "Executes 1–9 at once"
   printf "  ${M_WARN}  q  ${C_RESET}  ${M_LABEL}%s${C_RESET}\n" "Quit"
   echo ""
   menu_line
   echo ""
-  echo -e "${M_DESC}    Profile: ${C_RESET}${M_INFO}${PROFILE}${C_RESET}${M_DESC}  ·  change with: p=safe  p=normal  p=aggressive${C_RESET}"
+  echo -e "${M_DESC}    Profile: ${C_RESET}${M_INFO}${PROFILE}${C_RESET}${M_DESC}  ·  change: p=safe  p=normal  p=aggressive${C_RESET}"
   echo ""
   echo -ne "${M_RUN}  ❯ ${C_RESET}"
 }
@@ -286,15 +308,17 @@ menu_summary() {
 
 tui_main_menu() {
   AUTO_YES=1
+  tput smcup 2>/dev/null || true   # enter alternate screen
   while true; do
     menu_show
     local input=""
     read -r input
     echo ""
-    [[ "$input" =~ ^[qQ]$ ]] && echo -e "${M_WARN}  Bye.${C_RESET}\n" && exit 0
+    [[ "$input" =~ ^[qQ]$ ]] && tput rmcup 2>/dev/null || true; [[ "$input" =~ ^[qQ]$ ]] && echo -e "${M_WARN}  Bye.${C_RESET}\n" && exit 0
     [[ -z "$input" ]] && continue
 
     MOD_CLEAN=0; MOD_NETWORK=0; MOD_SECURITY=0; MOD_HEALTH=0; MOD_APPCACHE=0
+    MOD_PORTSCAN=0; MOD_ARPSCAN=0; MOD_BRUTEFORCE=0; MOD_BANDWIDTH=0
     ENABLE_DOCKER=0; REPORT_MODE=0; DRY_RUN=0
 
     local token
@@ -305,7 +329,12 @@ tui_main_menu() {
         3)    MOD_SECURITY=1 ;;
         4)    MOD_HEALTH=1 ;;
         5)    MOD_APPCACHE=1 ;;
-        \*)   MOD_CLEAN=1; MOD_NETWORK=1; MOD_SECURITY=1; MOD_HEALTH=1; MOD_APPCACHE=1 ;;
+        6)    MOD_PORTSCAN=1 ;;
+        7)    MOD_ARPSCAN=1 ;;
+        8)    MOD_BRUTEFORCE=1 ;;
+        9)    MOD_BANDWIDTH=1 ;;
+        \*)   MOD_CLEAN=1; MOD_NETWORK=1; MOD_SECURITY=1; MOD_HEALTH=1; MOD_APPCACHE=1
+              MOD_PORTSCAN=1; MOD_ARPSCAN=1; MOD_BRUTEFORCE=1; MOD_BANDWIDTH=1 ;;
         d|D)  ENABLE_DOCKER=1 ;;
         r|R)  REPORT_MODE=1
               [[ -z "$REPORT_FILE" ]] && \
@@ -318,7 +347,9 @@ tui_main_menu() {
     done
 
     if [[ "$MOD_CLEAN" -eq 0 && "$MOD_NETWORK" -eq 0 && "$MOD_SECURITY" -eq 0 \
-       && "$MOD_HEALTH" -eq 0 && "$MOD_APPCACHE" -eq 0 ]]; then
+       && "$MOD_HEALTH" -eq 0 && "$MOD_APPCACHE" -eq 0 \
+       && "$MOD_PORTSCAN" -eq 0 && "$MOD_ARPSCAN" -eq 0 \
+       && "$MOD_BRUTEFORCE" -eq 0 && "$MOD_BANDWIDTH" -eq 0 ]]; then
       # d alleine → implizit Disk Cleanup aktivieren
       if [[ "$ENABLE_DOCKER" -eq 1 ]]; then
         echo -e "${M_INFO}  Hint: 'd' runs together with Disk Cleanup — activating module 1 automatically.${C_RESET}\n"
@@ -395,6 +426,30 @@ tui_main_menu() {
       menu_step_result $rc "App Cache Cleanup"
       ran_modules+=("App Cache Cleanup")
     fi
+    if [[ "$MOD_PORTSCAN" -eq 1 ]]; then
+      menu_step_header 6 "Port Scanner" ">>>"
+      rc=0; run_port_scanner || rc=$?
+      menu_step_result $rc "Port Scanner"
+      ran_modules+=("Port Scanner")
+    fi
+    if [[ "$MOD_ARPSCAN" -eq 1 ]]; then
+      menu_step_header 7 "ARP Scan" ">>>"
+      rc=0; run_arp_scan || rc=$?
+      menu_step_result $rc "ARP Scan"
+      ran_modules+=("ARP Scan")
+    fi
+    if [[ "$MOD_BRUTEFORCE" -eq 1 ]]; then
+      menu_step_header 8 "Brute-Force Monitor" ">>>"
+      rc=0; run_bruteforce_monitor || rc=$?
+      menu_step_result $rc "Brute-Force Monitor"
+      ran_modules+=("Brute-Force Monitor")
+    fi
+    if [[ "$MOD_BANDWIDTH" -eq 1 ]]; then
+      menu_step_header 9 "Bandwidth Monitor" ">>>"
+      rc=0; run_bandwidth_monitor || rc=$?
+      menu_step_result $rc "Bandwidth Monitor"
+      ran_modules+=("Bandwidth Monitor")
+    fi
 
     local final_bytes
     final_bytes="$(df -B1 --output=used / | tail -n 1 | tr -d ' ')"
@@ -420,7 +475,7 @@ tui_main_menu() {
     local again=""
     read -r again
     echo ""
-    [[ ! "$again" =~ ^[Yy]$ ]] && echo -e "${M_OK}  Done. Bye!${C_RESET}\n" && exit 0
+    [[ ! "$again" =~ ^[Yy]$ ]] && tput rmcup 2>/dev/null || true && echo -e "${M_OK}  Done. Bye!${C_RESET}\n" && exit 0
   done
 }
 
@@ -834,6 +889,331 @@ get_port_name() {
     27017) echo "MongoDB" ;;
     *)     echo "unknown" ;;
   esac
+}
+
+# ==========================================================
+# MODULE 6: PORT SCANNER  (target IP eingeben)
+# ==========================================================
+run_port_scanner() {
+  log_section "Port Scanner"
+  report_add "## Port Scanner"
+  report_add ""
+
+  echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Target IP / Host: ${C_RESET}"
+  local target=""
+  read -r target
+  [[ -z "$target" ]] && log_warn "No target given. Skipping." && return 0
+
+  echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Port range (e.g. 1-1024, default 1-1024): ${C_RESET}"
+  local range=""
+  read -r range
+  [[ -z "$range" ]] && range="1-1024"
+
+  log_info "Scanning $target ports $range ..."
+  report_add "**Target:** $target  |  **Range:** $range"
+  report_add ""
+
+  # nmap preferred — fallback to pure bash TCP probe
+  if require_cmd nmap; then
+    log_info "Using nmap..."
+    local nmap_out
+    nmap_out=$("${SUDO[@]}" nmap -sS -p "$range" --open -T4 "$target" 2>/dev/null || \
+               nmap -sT -p "$range" --open -T4 "$target" 2>/dev/null || true)
+    echo "$nmap_out" | tee -a "$LOG_FILE"
+    report_add '```'
+    echo "$nmap_out" >> "$REPORT_FILE" 2>/dev/null || true
+    report_add '```'
+  else
+    log_warn "nmap not found — using basic bash TCP probe (slow for large ranges)."
+    local start end
+    start="${range%-*}"
+    end="${range#*-}"
+    [[ "$start" == "$range" ]] && end="$start"   # single port
+    local open_ports=()
+    for (( p=start; p<=end; p++ )); do
+      if timeout 0.5 bash -c "echo >/dev/tcp/$target/$p" 2>/dev/null; then
+        log_find "OPEN  $p/tcp  ($(get_port_name "$p"))"
+        open_ports+=("$p")
+        report_add "- ✅ Port **$p** open ($(get_port_name "$p"))"
+      fi
+    done
+    [[ ${#open_ports[@]} -eq 0 ]] && log_ok "No open ports found in range $range."
+  fi
+
+  log_ok "Port scan complete."
+  report_add ""
+}
+
+# ==========================================================
+# MODULE 7: ARP SCAN  (devices on local network)
+# ==========================================================
+run_arp_scan() {
+  log_section "ARP Scan — Local Network Devices"
+  report_add "## ARP Scan"
+  report_add ""
+
+  # Detect local subnet automatically
+  local iface subnet
+  iface=$(ip route show default 2>/dev/null | awk '/default/{print $5}' | head -1)
+  subnet=$(ip -o -f inet addr show "${iface:-}" 2>/dev/null \
+    | awk '{print $4}' | head -1)
+
+  if [[ -z "$subnet" ]]; then
+    echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Could not detect subnet. Enter manually (e.g. 192.168.1.0/24): ${C_RESET}"
+    read -r subnet
+  else
+    log_info "Detected subnet: ${C_BOLD}$subnet${C_RESET} on interface ${C_BOLD}$iface${C_RESET}"
+    echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Scan $subnet? or enter different subnet: ${C_RESET}"
+    local custom=""
+    read -r custom
+    [[ -n "$custom" ]] && subnet="$custom"
+  fi
+
+  [[ -z "$subnet" ]] && log_warn "No subnet given. Skipping." && return 0
+
+  report_add "**Subnet scanned:** $subnet"
+  report_add ""
+  report_add "| IP Address | MAC Address | Vendor |"
+  report_add "|---|---|---|"
+
+  if require_cmd arp-scan; then
+    log_info "Using arp-scan on $subnet ..."
+    local result
+    result=$("${SUDO[@]}" arp-scan "$subnet" 2>/dev/null || true)
+    echo "$result" | tee -a "$LOG_FILE"
+    # Parse into report
+    echo "$result" | grep -E '^[0-9]' | while IFS=$'\t' read -r ip mac vendor; do
+      report_add "| $ip | $mac | $vendor |"
+    done
+  elif require_cmd nmap; then
+    log_info "Using nmap ping scan on $subnet ..."
+    local result
+    result=$("${SUDO[@]}" nmap -sn "$subnet" 2>/dev/null || true)
+    echo "$result" | tee -a "$LOG_FILE"
+    echo "$result" | grep "Nmap scan report" | awk '{print $NF}' | while read -r ip; do
+      local mac
+      mac=$(arp -n "$ip" 2>/dev/null | awk '/ether/{print $3}' || echo "unknown")
+      report_add "| $ip | $mac | — |"
+    done
+  else
+    log_warn "Neither arp-scan nor nmap found."
+    log_info "Trying basic ping sweep (slow)..."
+    local net="${subnet%.*}"
+    for i in $(seq 1 254); do
+      if ping -c1 -W1 "${net}.${i}" &>/dev/null; then
+        local mac
+        mac=$(arp -n "${net}.${i}" 2>/dev/null | awk '/ether/{print $3}' || echo "?")
+        log_find "${net}.${i}  —  $mac"
+        report_add "| ${net}.${i} | $mac | — |"
+      fi
+    done
+  fi
+
+  log_ok "ARP scan complete."
+  report_add ""
+}
+
+# ==========================================================
+# MODULE 8: BRUTE-FORCE / LOGIN MONITOR
+# ==========================================================
+run_bruteforce_monitor() {
+  log_section "Brute-Force & Login Attack Monitor"
+  report_add "## Brute-Force Monitor"
+  report_add ""
+
+  local issues=0
+
+  # --- Failed SSH attempts ---
+  log_info "Failed SSH login attempts (last 50):"
+  local ssh_fails=""
+  if require_cmd journalctl; then
+    ssh_fails=$("${SUDO[@]}" journalctl -u ssh -u sshd --no-pager --since "7 days ago" 2>/dev/null \
+      | grep -i "failed\|invalid\|refused" | tail -50 || true)
+  elif [[ -f /var/log/auth.log ]]; then
+    ssh_fails=$("${SUDO[@]}" grep -i "failed password\|invalid user" /var/log/auth.log 2>/dev/null | tail -50 || true)
+  elif [[ -f /var/log/secure ]]; then
+    ssh_fails=$("${SUDO[@]}" grep -i "failed password\|invalid user" /var/log/secure 2>/dev/null | tail -50 || true)
+  fi
+
+  if [[ -n "$ssh_fails" ]]; then
+    local count; count=$(echo "$ssh_fails" | wc -l)
+    log_warn "Found ${C_BOLD}$count${C_RESET} failed SSH login attempts in last 7 days."
+    echo "$ssh_fails" | tee -a "$LOG_FILE"
+    report_add "### Failed SSH Attempts (last 7 days)"
+    report_add "**Count:** $count"
+    report_add '```'
+    echo "$ssh_fails" >> "$REPORT_FILE" 2>/dev/null || true
+    report_add '```'
+    (( issues++ )) || true
+
+    # Top attacking IPs
+    log_info "Top 10 attacking IPs:"
+    local top_ips
+    top_ips=$(echo "$ssh_fails" \
+      | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' \
+      | sort | uniq -c | sort -rn | head -10 || true)
+    if [[ -n "$top_ips" ]]; then
+      echo "$top_ips" | while read -r cnt ip; do
+        log_find "  ${C_BOLD}$cnt${C_RESET} attempts  →  $ip"
+      done
+      report_add "**Top Attacking IPs:**"
+      report_add '```'
+      echo "$top_ips" >> "$REPORT_FILE" 2>/dev/null || true
+      report_add '```'
+    fi
+  else
+    log_ok "No failed SSH attempts found in the last 7 days."
+    report_add "- ✅ No failed SSH attempts found"
+  fi
+
+  # --- Currently banned IPs (fail2ban) ---
+  log_info "Checking fail2ban status..."
+  if require_cmd fail2ban-client; then
+    local banned
+    banned=$("${SUDO[@]}" fail2ban-client status sshd 2>/dev/null || \
+             "${SUDO[@]}" fail2ban-client status 2>/dev/null || true)
+    if [[ -n "$banned" ]]; then
+      echo "$banned" | tee -a "$LOG_FILE"
+      report_add "### Fail2ban Status"
+      report_add '```'
+      echo "$banned" >> "$REPORT_FILE" 2>/dev/null || true
+      report_add '```'
+    fi
+  else
+    log_info "fail2ban not installed (recommended for SSH protection)."
+    report_add "- ℹ️  fail2ban not installed — consider installing it"
+  fi
+
+  # --- Successful logins ---
+  log_info "Recent successful logins:"
+  if require_cmd last; then
+    last 2>/dev/null | head -20 | tee -a "$LOG_FILE" || true
+  fi
+
+  # --- Currently logged in users ---
+  log_info "Users currently logged in:"
+  if require_cmd who; then
+    who | tee -a "$LOG_FILE" || true
+  fi
+
+  # --- Root login check ---
+  log_info "Checking for direct root SSH logins..."
+  local root_logins=""
+  if require_cmd journalctl; then
+    root_logins=$("${SUDO[@]}" journalctl -u ssh -u sshd --no-pager --since "30 days ago" 2>/dev/null \
+      | grep "Accepted.*root" || true)
+  elif [[ -f /var/log/auth.log ]]; then
+    root_logins=$("${SUDO[@]}" grep "Accepted.*root" /var/log/auth.log 2>/dev/null || true)
+  fi
+  if [[ -n "$root_logins" ]]; then
+    log_warn "Direct root SSH logins detected:"
+    echo "$root_logins" | while read -r line; do log_find "$line"; done
+    report_add "- ⚠️  **Direct root logins detected** — disable PermitRootLogin"
+    (( issues++ )) || true
+  else
+    log_ok "No direct root SSH logins found."
+    report_add "- ✅ No direct root logins"
+  fi
+
+  echo ""
+  if [[ "$issues" -eq 0 ]]; then
+    log_ok "Brute-force monitor complete — no critical issues."
+    report_add "✅ **No critical brute-force issues found.**"
+  else
+    log_warn "Brute-force monitor — ${issues} issue(s) found. Review above."
+    report_add "⚠️ **$issues issue(s) found.**"
+  fi
+  report_add ""
+}
+
+# ==========================================================
+# MODULE 9: BANDWIDTH MONITOR  (live + summary)
+# ==========================================================
+run_bandwidth_monitor() {
+  log_section "Bandwidth Monitor"
+  report_add "## Bandwidth Monitor"
+  report_add ""
+
+  # Detect primary interface
+  local iface
+  iface=$(ip route show default 2>/dev/null | awk '/default/{print $5}' | head -1)
+  if [[ -z "$iface" ]]; then
+    echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Interface (e.g. eth0, ens3): ${C_RESET}"
+    read -r iface
+  else
+    log_info "Detected interface: ${C_BOLD}$iface${C_RESET}"
+  fi
+  [[ -z "$iface" ]] && log_warn "No interface given. Skipping." && return 0
+
+  local rx_file="/sys/class/net/${iface}/statistics/rx_bytes"
+  local tx_file="/sys/class/net/${iface}/statistics/tx_bytes"
+
+  if [[ ! -f "$rx_file" ]]; then
+    log_warn "/sys/class/net/$iface not found. Check interface name."
+    return 1
+  fi
+
+  # --- Snapshot over 5 seconds ---
+  log_info "Sampling traffic on $iface for 5 seconds..."
+  local rx1 tx1 rx2 tx2
+  rx1=$(cat "$rx_file"); tx1=$(cat "$tx_file")
+  sleep 5
+  rx2=$(cat "$rx_file"); tx2=$(cat "$tx_file")
+
+  local rx_diff=$(( rx2 - rx1 ))
+  local tx_diff=$(( tx2 - tx1 ))
+  local rx_kbps=$(( rx_diff / 1024 / 5 ))
+  local tx_kbps=$(( tx_diff / 1024 / 5 ))
+
+  log_ok "Interface: ${C_BOLD}$iface${C_RESET}"
+  log_ok "  ↓  Download: ${C_BOLD}${rx_kbps} KB/s${C_RESET}"
+  log_ok "  ↑  Upload:   ${C_BOLD}${tx_kbps} KB/s${C_RESET}"
+
+  report_add "**Interface:** $iface"
+  report_add "| Direction | Speed |"
+  report_add "|---|---|"
+  report_add "| ↓ Download | ${rx_kbps} KB/s |"
+  report_add "| ↑ Upload   | ${tx_kbps} KB/s |"
+
+  # --- Total traffic since boot ---
+  local rx_total tx_total
+  rx_total=$(cat "$rx_file")
+  tx_total=$(cat "$tx_file")
+  local rx_mb=$(( rx_total / 1024 / 1024 ))
+  local tx_mb=$(( tx_total / 1024 / 1024 ))
+  log_info "Total since boot — ↓ ${rx_mb} MB received  |  ↑ ${tx_mb} MB sent"
+  report_add ""
+  report_add "**Total since boot:** ↓ ${rx_mb} MB received  |  ↑ ${tx_mb} MB sent"
+
+  # --- Top network connections ---
+  log_info "Top active network connections:"
+  if require_cmd ss; then
+    "${SUDO[@]}" ss -tnp 2>/dev/null | head -20 | tee -a "$LOG_FILE" || true
+  fi
+
+  # --- Optional: live monitor with nethogs/iftop ---
+  if require_cmd nethogs; then
+    echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Launch live nethogs monitor? (30s) [y/n]: ${C_RESET}"
+    local ans=""
+    read -r ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+      log_info "Launching nethogs for 30 seconds (Ctrl+C to stop early)..."
+      timeout 30 "${SUDO[@]}" nethogs "$iface" 2>/dev/null || true
+    fi
+  elif require_cmd iftop; then
+    echo -ne "${M_RUN}  ❯ ${C_RESET}${M_LABEL}Launch live iftop monitor? (30s) [y/n]: ${C_RESET}"
+    local ans=""
+    read -r ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+      log_info "Launching iftop for 30 seconds..."
+      timeout 30 "${SUDO[@]}" iftop -i "$iface" 2>/dev/null || true
+    fi
+  else
+    log_info "Tip: install 'nethogs' or 'iftop' for per-process live bandwidth monitoring."
+  fi
+
+  log_ok "Bandwidth monitor complete."
+  report_add ""
 }
 
 # ==========================================================
