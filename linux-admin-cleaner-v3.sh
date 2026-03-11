@@ -204,65 +204,70 @@ menu_logo() {
   echo ""
 }
 
-menu_line() { echo -e "${M_SEP}    $(printf '─%.0s' $(seq 1 55))${C_RESET}"; }
+menu_line() { echo -e "${M_SEP}$(printf '─%.0s' $(seq 1 78))${C_RESET}"; }
+
+menu_cat_header() {
+  local title="$1" color="$2"
+  printf "\n  %b  %-72s%b\n" "$color" "$title" "${C_RESET}"
+  printf "  %b%s%b\n" "${M_SEP}" "$(printf '─%.0s' $(seq 1 74))" "${C_RESET}"
+}
+
+menu_item() {
+  local num="$1" label="$2" desc="$3" nc="${4:-$M_NUM}"
+  printf "  %b %2s %b  %b%-24s%b  %b%s%b\n" \
+    "$nc" "$num" "${C_RESET}" \
+    "${M_LABEL}" "$label" "${C_RESET}" \
+    "${M_DESC}" "$desc" "${C_RESET}"
+}
 
 menu_show() {
   tui_clear_screen
   menu_logo
-  echo -e "${M_LABEL}    WHAT DO YOU WANT TO DO?${C_RESET}"
-  echo -e "${M_DESC}    Enter numbers separated by spaces  (e.g.  1 3 4  or  * r)${C_RESET}"
+  echo -e "  ${M_DESC}Enter numbers (e.g. ${C_RESET}${M_NUM}1 4 7${C_RESET}${M_DESC}) · options (${C_RESET}${M_NUM}d r n${C_RESET}${M_DESC}) · all modules (${C_RESET}${M_RUN}*${C_RESET}${M_DESC}) · quit (${C_RESET}${M_WARN}q${C_RESET}${M_DESC})${C_RESET}"
+  menu_line
+
+  # ── SYSTEM TOOLS ──────────────────────────────────────────
+  menu_cat_header "[ SYSTEM TOOLS ]" "${M_STEP}"
+  echo ""
+  menu_item  1  "Disk Cleanup"       "Package cache · journal · temp files · logs · snap"
+  menu_item  2  "Health Check"       "CPU / RAM / disk alerts · failed services · OOM"
+  menu_item  3  "Security Audit"     "SUID · SSH hardening · sudo · password check"
+  menu_item  4  "App Cache"          "npm · pip · cargo · Go · Maven · Gradle"
+
+  # ── NETWORK TOOLS ─────────────────────────────────────────
+  menu_cat_header "[ NETWORK TOOLS ]" "${M_RUN}"
+  echo ""
+  menu_item  5  "Network Audit"      "Interfaces · firewall · open ports · DNS"
+  menu_item  6  "Port Scanner"       "Scan any target IP — nmap or bash fallback"
+  menu_item  7  "ARP Scan"           "Discover all devices on local network"
+  menu_item  8  "Bandwidth Monitor"  "Live speed · total traffic · connections"
+
+  # ── SECURITY TOOLS ────────────────────────────────────────
+  menu_cat_header "[ SECURITY TOOLS ]" "${M_WARN}"
+  echo ""
+  menu_item  9  "Brute-Force Monitor"  "Failed logins · attacking IPs · fail2ban · root SSH"
+
+  # ── OPTIONS ───────────────────────────────────────────────
+  menu_cat_header "[ OPTIONS ]" "${M_DESC}"
+  echo ""
+  menu_item  d  "Docker Cleanup"     "Include Docker images/volumes  (auto-enables module 1)"  "${M_NUM}"
+  menu_item  r  "Report"             "Save Markdown report to /tmp/report-DATE.md"              "${M_NUM}"
+  menu_item  n  "Dry Run"            "Preview only — no changes will be made"                   "${M_NUM}"
+
+  # ── FOOTER ────────────────────────────────────────────────
   echo ""
   menu_line
-  echo -e "${M_DESC}    System Tools${C_RESET}"
-  menu_line
-  echo ""
-  printf "  ${M_NUM}  1  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Disk Cleanup"     "Package cache · journal · temp · logs · snap · flatpak"
-  printf "  ${M_NUM}  2  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Network Audit"    "Interfaces · open ports · firewall · sensitive services"
-  printf "  ${M_NUM}  3  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Security Audit"   "SUID · SSH config · sudo entries · password check"
-  printf "  ${M_NUM}  4  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Health Check"     "CPU · RAM · disk usage · failed services · OOM kills"
-  printf "  ${M_NUM}  5  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "App Cache"        "npm · pip · cargo · Go · Maven · Gradle"
+  printf "  ${M_RUN}  *  ${C_RESET}  ${M_LABEL}%-24s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Run ALL" "Execute modules 1–9 at once"
+  printf "  ${M_WARN}  q  ${C_RESET}  ${M_LABEL}%-24s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
+    "Quit" "Exit script and restore terminal"
   echo ""
   menu_line
-  echo -e "${M_WARN}    Network Security${C_RESET}"
-  menu_line
-  echo ""
-  printf "  ${M_NUM}  6  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Port Scanner"     "Scan open ports on any target IP (nmap / bash fallback)"
-  printf "  ${M_NUM}  7  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "ARP Scan"         "Discover all devices on local network"
-  printf "  ${M_NUM}  8  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Brute-Force Monitor" "Failed logins · attacking IPs · fail2ban · root SSH"
-  printf "  ${M_NUM}  9  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Bandwidth Monitor" "Live speed · total traffic · top connections · nethogs"
-  echo ""
-  menu_line
-  echo -e "${M_DESC}    Options — add to your selection:${C_RESET}"
-  menu_line
-  echo ""
-  printf "  ${M_NUM}  d  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Docker cleanup"   "Add to '1' or alone (auto-enables Disk Cleanup)"
-  printf "  ${M_NUM}  r  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Generate Report"  "Works with any module — saves results to /tmp/"
-  printf "  ${M_NUM}  n  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Dry Run"          "Works with any module — preview only, no changes"
-  echo ""
-  menu_line
-  echo ""
-  printf "  ${M_RUN}  *  ${C_RESET}  ${M_LABEL}%-22s${C_RESET}  ${M_DESC}%s${C_RESET}\n" \
-    "Run ALL modules"  "Executes 1–9 at once"
-  printf "  ${M_WARN}  q  ${C_RESET}  ${M_LABEL}%s${C_RESET}\n" "Quit"
-  echo ""
-  menu_line
-  echo ""
-  echo -e "${M_DESC}    Profile: ${C_RESET}${M_INFO}${PROFILE}${C_RESET}${M_DESC}  ·  change: p=safe  p=normal  p=aggressive${C_RESET}"
+  echo -e "  ${M_DESC}Profile: ${C_RESET}${M_INFO}${PROFILE}${C_RESET}${M_DESC}  ·  change: ${C_RESET}${M_NUM}p=safe${C_RESET}  ${M_NUM}p=normal${C_RESET}  ${M_NUM}p=aggressive${C_RESET}"
   echo ""
   echo -ne "${M_RUN}  ❯ ${C_RESET}"
 }
+
 
 menu_step_header() {
   local num="$1" name="$2" icon="$3"
@@ -324,17 +329,23 @@ tui_main_menu() {
     local token
     for token in $input; do
       case "$token" in
+        # ── SYSTEM TOOLS ──────────────────────
         1)    MOD_CLEAN=1 ;;
-        2)    MOD_NETWORK=1 ;;
+        2)    MOD_HEALTH=1 ;;
         3)    MOD_SECURITY=1 ;;
-        4)    MOD_HEALTH=1 ;;
-        5)    MOD_APPCACHE=1 ;;
+        4)    MOD_APPCACHE=1 ;;
+        # ── NETWORK TOOLS ─────────────────────
+        5)    MOD_NETWORK=1 ;;
         6)    MOD_PORTSCAN=1 ;;
         7)    MOD_ARPSCAN=1 ;;
-        8)    MOD_BRUTEFORCE=1 ;;
-        9)    MOD_BANDWIDTH=1 ;;
-        \*)   MOD_CLEAN=1; MOD_NETWORK=1; MOD_SECURITY=1; MOD_HEALTH=1; MOD_APPCACHE=1
-              MOD_PORTSCAN=1; MOD_ARPSCAN=1; MOD_BRUTEFORCE=1; MOD_BANDWIDTH=1 ;;
+        8)    MOD_BANDWIDTH=1 ;;
+        # ── SECURITY TOOLS ────────────────────
+        9)    MOD_BRUTEFORCE=1 ;;
+        # ── ALL ───────────────────────────────
+        \*)   MOD_CLEAN=1; MOD_HEALTH=1; MOD_SECURITY=1; MOD_APPCACHE=1
+              MOD_NETWORK=1; MOD_PORTSCAN=1; MOD_ARPSCAN=1; MOD_BANDWIDTH=1
+              MOD_BRUTEFORCE=1 ;;
+        # ── OPTIONS ───────────────────────────
         d|D)  ENABLE_DOCKER=1 ;;
         r|R)  REPORT_MODE=1
               [[ -z "$REPORT_FILE" ]] && \
@@ -342,7 +353,7 @@ tui_main_menu() {
         n|N)  DRY_RUN=1 ;;
         p=safe|p=normal|p=aggressive) PROFILE="${token#p=}" ;;
         q|Q)  echo -e "${M_WARN}  Bye.${C_RESET}\n"; exit 0 ;;
-        *)    echo -e "${M_WARN}  Unknown option: '${token}' — ignored.${C_RESET}" ;;
+        *)    echo -e "${M_WARN}  Unknown: '${token}' — ignored.${C_RESET}" ;;
       esac
     done
 
@@ -355,7 +366,7 @@ tui_main_menu() {
         echo -e "${M_INFO}  Hint: 'd' runs together with Disk Cleanup — activating module 1 automatically.${C_RESET}\n"
         MOD_CLEAN=1
       else
-        echo -e "${M_WARN}  No module selected. Enter at least one number (1–5) or * for all.${C_RESET}\n"
+        echo -e "${M_WARN}  No module selected. Enter at least one number (1–9) or * for all.${C_RESET}\n"
         sleep 1; continue
       fi
     fi
@@ -400,55 +411,55 @@ tui_main_menu() {
       cleanup_snap      || rc=$?
       cleanup_docker    || rc=$?
       menu_step_result $rc "Disk Cleanup"
-      ran_modules+=("Disk Cleanup")
-    fi
-    if [[ "$MOD_NETWORK" -eq 1 ]]; then
-      menu_step_header 2 "Network Audit" ">>>"
-      rc=0; run_network_audit || rc=$?
-      menu_step_result $rc "Network Audit"
-      ran_modules+=("Network Audit")
-    fi
-    if [[ "$MOD_SECURITY" -eq 1 ]]; then
-      menu_step_header 3 "Security Audit" ">>>"
-      rc=0; run_security_audit || rc=$?
-      menu_step_result $rc "Security Audit"
-      ran_modules+=("Security Audit")
+      ran_modules+=("1 · Disk Cleanup")
     fi
     if [[ "$MOD_HEALTH" -eq 1 ]]; then
-      menu_step_header 4 "Health Check" ">>>"
+      menu_step_header 2 "Health Check" "SYSTEM"
       rc=0; run_health_check || rc=$?
       menu_step_result $rc "Health Check"
-      ran_modules+=("Health Check")
+      ran_modules+=("2 · Health Check")
+    fi
+    if [[ "$MOD_SECURITY" -eq 1 ]]; then
+      menu_step_header 3 "Security Audit" "SYSTEM"
+      rc=0; run_security_audit || rc=$?
+      menu_step_result $rc "Security Audit"
+      ran_modules+=("3 · Security Audit")
     fi
     if [[ "$MOD_APPCACHE" -eq 1 ]]; then
-      menu_step_header 5 "App Cache Cleanup" ">>>"
+      menu_step_header 4 "App Cache Cleanup" "SYSTEM"
       rc=0; run_appcache_clean || rc=$?
       menu_step_result $rc "App Cache Cleanup"
-      ran_modules+=("App Cache Cleanup")
+      ran_modules+=("4 · App Cache Cleanup")
+    fi
+    if [[ "$MOD_NETWORK" -eq 1 ]]; then
+      menu_step_header 5 "Network Audit" "NETWORK"
+      rc=0; run_network_audit || rc=$?
+      menu_step_result $rc "Network Audit"
+      ran_modules+=("5 · Network Audit")
     fi
     if [[ "$MOD_PORTSCAN" -eq 1 ]]; then
-      menu_step_header 6 "Port Scanner" ">>>"
+      menu_step_header 6 "Port Scanner" "NETWORK"
       rc=0; run_port_scanner || rc=$?
       menu_step_result $rc "Port Scanner"
-      ran_modules+=("Port Scanner")
+      ran_modules+=("6 · Port Scanner")
     fi
     if [[ "$MOD_ARPSCAN" -eq 1 ]]; then
-      menu_step_header 7 "ARP Scan" ">>>"
+      menu_step_header 7 "ARP Scan" "NETWORK"
       rc=0; run_arp_scan || rc=$?
       menu_step_result $rc "ARP Scan"
-      ran_modules+=("ARP Scan")
-    fi
-    if [[ "$MOD_BRUTEFORCE" -eq 1 ]]; then
-      menu_step_header 8 "Brute-Force Monitor" ">>>"
-      rc=0; run_bruteforce_monitor || rc=$?
-      menu_step_result $rc "Brute-Force Monitor"
-      ran_modules+=("Brute-Force Monitor")
+      ran_modules+=("7 · ARP Scan")
     fi
     if [[ "$MOD_BANDWIDTH" -eq 1 ]]; then
-      menu_step_header 9 "Bandwidth Monitor" ">>>"
+      menu_step_header 8 "Bandwidth Monitor" "NETWORK"
       rc=0; run_bandwidth_monitor || rc=$?
       menu_step_result $rc "Bandwidth Monitor"
-      ran_modules+=("Bandwidth Monitor")
+      ran_modules+=("8 · Bandwidth Monitor")
+    fi
+    if [[ "$MOD_BRUTEFORCE" -eq 1 ]]; then
+      menu_step_header 9 "Brute-Force Monitor" "SECURITY"
+      rc=0; run_bruteforce_monitor || rc=$?
+      menu_step_result $rc "Brute-Force Monitor"
+      ran_modules+=("9 · Brute-Force Monitor")
     fi
 
     local final_bytes
